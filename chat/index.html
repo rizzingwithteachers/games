@@ -232,101 +232,127 @@
     </aside>
   </main>
 
-  <script>
-    (() => {
-      const channelItems = Array.from(document.querySelectorAll('.channel-item'));
-      const channelTitle = document.querySelector('.channel-title strong');
-      const chatMetaLabel = document.querySelector('.chat-meta span');
-      const chatTopic = document.querySelector('.chat-topic');
-      const messageScroller = document.getElementById('message-scroller');
-      const messageInput = document.getElementById('message-input');
-      const sendButton = document.getElementById('send-message-btn');
-      const friendFilter = document.getElementById('friend-filter');
-      const friends = Array.from(document.querySelectorAll('.friend-card'));
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } 
+  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-      const topics = {
-        'general-lobby': 'Community announcements, event alerts, and game support in one place.',
-        'lobby-matchmaking': 'Team up with other players, join sessions, and find matches quickly.',
-        announcements: 'News and update alerts for CarsonGames services.',
-        'dev-changelogs': 'Development updates, patch notes, and feature rollouts.'
-      };
+  /* Firebase config */
+  const firebaseConfig = {
+    apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
+    authDomain: "carson-games.firebaseapp.com",
+    projectId: "carson-games",
+    storageBucket: "carson-games.firebasestorage.app",
+    messagingSenderId: "856520252558",
+    appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
+  };
 
-      const setActiveChannel = (activeItem) => {
-        channelItems.forEach(item => item.classList.toggle('active', item === activeItem));
-        const channel = activeItem.textContent.trim();
-        channelTitle.textContent = channel;
-        chatTopic.innerHTML = `<strong>Topic:</strong> ${topics[channel] || 'No topic set for this channel.'}`;
-      };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
 
-      channelItems.forEach(item => {
-        item.addEventListener('click', () => setActiveChannel(item));
-      });
+  /* AUTH GUARD (fixes redirect loop) */
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "../login/";
+    } else {
+      console.log("Chat logged in as:", user.email);
+      enableChat();
+      addLogoutButton();
+    }
+  });
 
-      const appendMessage = (username, time, text, avatar, reactions = []) => {
-        const block = document.createElement('div');
-        block.className = 'msg-block';
-        block.innerHTML = `
-          <div class="msg-avatar" style="background: var(--card);">${avatar}</div>
-          <div class="msg-content">
-            <div class="msg-top">
-              <h5>${username} <span>${time}</span></h5>
-              <span>Online</span>
-            </div>
-            <p>${text}</p>
-            <div class="msg-actions">${reactions.map(r => `<span class="reaction-pill">${r}</span>`).join('')}</div>
+  /* YOUR EXISTING CHAT CODE WRAPPED */
+  function enableChat() {
+    const channelItems = Array.from(document.querySelectorAll('.channel-item'));
+    const channelTitle = document.querySelector('.channel-title strong');
+    const chatTopic = document.querySelector('.chat-topic');
+    const messageScroller = document.getElementById('message-scroller');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-message-btn');
+    const friendFilter = document.getElementById('friend-filter');
+    const friends = Array.from(document.querySelectorAll('.friend-card'));
+
+    const topics = {
+      'general-lobby': 'Community announcements, event alerts, and game support in one place.',
+      'lobby-matchmaking': 'Team up with other players, join sessions, and find matches quickly.',
+      announcements: 'News and update alerts for CarsonGames services.',
+      'dev-changelogs': 'Development updates, patch notes, and feature rollouts.'
+    };
+
+    const setActiveChannel = (activeItem) => {
+      channelItems.forEach(item => item.classList.toggle('active', item === activeItem));
+      const channel = activeItem.textContent.trim();
+      channelTitle.textContent = channel;
+      chatTopic.innerHTML = `<strong>Topic:</strong> ${topics[channel] || 'No topic set for this channel.'}`;
+    };
+
+    channelItems.forEach(item => {
+      item.addEventListener('click', () => setActiveChannel(item));
+    });
+
+    const appendMessage = (username, time, text, avatar, reactions = []) => {
+      const block = document.createElement('div');
+      block.className = 'msg-block';
+      block.innerHTML = `
+        <div class="msg-avatar">${avatar}</div>
+        <div class="msg-content">
+          <div class="msg-top">
+            <h5>${username} <span>${time}</span></h5>
+            <span>Online</span>
           </div>
-        `;
-        messageScroller.appendChild(block);
-        messageScroller.scrollTop = messageScroller.scrollHeight;
-      };
+          <p>${text}</p>
+          <div class="msg-actions">
+            ${reactions.map(r => `<span class="reaction-pill">${r}</span>`).join('')}
+          </div>
+        </div>
+      `;
+      messageScroller.appendChild(block);
+      messageScroller.scrollTop = messageScroller.scrollHeight;
+    };
 
-      const sendMessage = () => {
-        const text = messageInput.value.trim();
-        if (!text) return;
-        appendMessage('You', 'Now', text, 'Y', ['👍 1']);
-        messageInput.value = '';
-        messageInput.focus();
-      };
+    const sendMessage = () => {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      appendMessage('You', 'Now', text, 'Y', ['👍 1']);
+      messageInput.value = '';
+    };
 
-      sendButton.addEventListener('click', sendMessage);
-      messageInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          sendMessage();
-        }
-      });
-
-      friendFilter.addEventListener('input', () => {
-        const query = friendFilter.value.toLowerCase();
-        friends.forEach(friend => {
-          const name = friend.dataset.name.toLowerCase();
-          friend.style.display = name.includes(query) ? 'flex' : 'none';
-        });
-      });
-    })();
-  </script>
-  <script>
-    (function() {
-      const user = sessionStorage.getItem('cgAuthUser');
-      if (!user) {
-        window.location.href = '../login/';
-        return;
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage();
       }
-      const nav = document.querySelector('nav ul');
-      if (nav) {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = '#';
-        a.textContent = 'Logout';
-        a.addEventListener('click', (event) => {
-          event.preventDefault();
-          sessionStorage.removeItem('cgAuthUser');
-          window.location.href = '../login/';
-        });
-        li.appendChild(a);
-        nav.appendChild(li);
-      }
-    })();
+    });
+
+    friendFilter.addEventListener('input', () => {
+      const query = friendFilter.value.toLowerCase();
+      friends.forEach(friend => {
+        const name = friend.dataset.name.toLowerCase();
+        friend.style.display = name.includes(query) ? 'flex' : 'none';
+      });
+    });
+  }
+
+  /* LOGOUT */
+  function addLogoutButton() {
+    const nav = document.querySelector('nav ul');
+    if (!nav) return;
+  
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+  
+    a.textContent = "Logout";
+    a.href = "#";
+    a.addEventListener("click", async (e) => {
+      e.preventDefault();
+      await signOut(auth);
+      window.location.href = "../login/";
+    });
+  
+    li.appendChild(a);
+    nav.appendChild(li);
+  }
   </script>
 </body>
 </html>
