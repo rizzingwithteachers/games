@@ -305,5 +305,28 @@
       });
     })();
   </script>
+  <script>
+    (function() {
+      const user = sessionStorage.getItem('cgAuthUser');
+      if (!user) {
+        window.location.href = '../login/';
+        return;
+      }
+      const nav = document.querySelector('nav ul');
+      if (nav) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = 'Logout';
+        a.addEventListener('click', (event) => {
+          event.preventDefault();
+          sessionStorage.removeItem('cgAuthUser');
+          window.location.href = '../login/';
+        });
+        li.appendChild(a);
+        nav.appendChild(li);
+      }
+    })();
+  </script>
 </body>
 </html>
