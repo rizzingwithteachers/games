@@ -45,6 +45,14 @@
     </div>
   </main>
 
+  <script>
+    (function() {
+      if (!sessionStorage.getItem('cgAuthUser')) {
+        window.location.href = '../login/';
+      }
+    })();
+  </script>
+
 
   
 
