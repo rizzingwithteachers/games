@@ -45,12 +45,30 @@
     </div>
   </main>
 
-  <script>
-    (function() {
-      if (!sessionStorage.getItem('cgAuthUser')) {
-        window.location.href = '../login/';
-      }
-    })();
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } 
+  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
+    authDomain: "carson-games.firebaseapp.com",
+    projectId: "carson-games",
+    storageBucket: "carson-games.firebasestorage.app",
+    messagingSenderId: "856520252558",
+    appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "../login/";
+    } else {
+      console.log("Proxy access granted:", user.email);
+    }
+  });
   </script>
 
 
