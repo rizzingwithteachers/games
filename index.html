@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carson Games</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .hero {
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      background: radial-gradient(circle at top center, rgba(108,99,255,0.08) 0%, transparent 65%);
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      color: var(--text-muted);
+      max-width: 580px;
+      margin: 0 auto 2rem;
+      font-size: 1.1rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem 6rem;
+      width: 100%;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-l);
+      padding: 2.5rem 2rem;
+      transition: all 0.3s var(--ease);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(108, 99, 255, 0.3);
+      background: var(--card-hover);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .card h3 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    .card .btn-primary { margin-top: auto; justify-content: center; align-self: center; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <a href="" class="logo">CarsonGames</a>
+      <nav>
+        <ul>
+          <li><a href="#" class="active">Home</a></li>
+          <li><a href="games/">Games</a></li>
+          <li><a href="proxy/">Proxy</a></li>
+          <li><a href="chat/">Chat</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <a href="" class="logobig">CarsonGames</a>
+    <p>New website, new games!</p>
+    <a href="chat/" class="btn-primary">Sign In</a>
+  </section>
+
+  <main class="grid">
+    <div class="card">
+      <h3>Games</h3>
+      <p> </p>
+      <a href="games/" class="btn-primary">Open Games</a>
+    </div>
+
+    <div class="card">
+      <h3>Proxy</h3>
+      <p> </p>
+      <a href="proxy/" class="btn-primary">Open Proxy</a>
+    </div>
+
+    <div class="card">
+      <h3>Carson Chat</h3>
+      <p> </p>
+      <a href="chat/" class="btn-primary">Open Chat</a>
+    </div>
+  </main>
+
+  
+
+</body>
+</html>
