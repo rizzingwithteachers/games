@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CarsonGames — Login</title>
+  <title>CarsonGames - Login</title>
   <link rel="stylesheet" href="../style.css">
 
   <style>
@@ -73,6 +73,12 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
+import {
+  getFirestore,
+  doc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
 /* ================= CONFIG ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4WZ",
@@ -85,6 +91,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 /* ================= ELEMENTS ================= */
 const form = document.getElementById("auth-form");
@@ -99,10 +106,18 @@ const name = document.getElementById("name");
 
 let signUpMode = false;
 
-/* ================= SIGN UP ================= */
+/* ================= SIGN UP (NOW SAVES USERNAME) ================= */
 async function signUp(nameVal, emailVal, passwordVal) {
   try {
-    await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
+    const userCred = await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
+
+    // ✅ SAVE USERNAME TO FIRESTORE
+    await setDoc(doc(db, "users", userCred.user.uid), {
+      username: nameVal || emailVal.split("@")[0],
+      email: emailVal,
+      createdAt: Date.now()
+    });
+
     return true;
   } catch (err) {
     alert(err.message);
