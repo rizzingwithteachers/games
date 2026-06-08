@@ -76,7 +76,8 @@ import {
 import {
   getFirestore,
   doc,
-  setDoc
+  setDoc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 /* ================= CONFIG ================= */
@@ -109,16 +110,27 @@ let signUpMode = false;
 /* ================= SIGN UP (NOW SAVES USERNAME) ================= */
 async function signUp(nameVal, emailVal, passwordVal) {
   try {
-    const userCred = await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
+    // block empty username BEFORE creating account
+    if (!nameVal || !nameVal.trim()) {
+      alert("Username is required");
+      return false;
+    }
 
-    // ✅ SAVE USERNAME TO FIRESTORE
+    const userCred = await createUserWithEmailAndPassword(
+      auth,
+      emailVal,
+      passwordVal
+    );
+
+    // save user with REQUIRED username
     await setDoc(doc(db, "users", userCred.user.uid), {
-      username: nameVal || emailVal.split("@")[0],
+      username: nameVal.trim(),
       email: emailVal,
       createdAt: Date.now()
     });
 
     return true;
+
   } catch (err) {
     alert(err.message);
     return false;
