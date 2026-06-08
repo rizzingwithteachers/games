@@ -8,50 +8,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     body { height: 100vh; max-height: 100vh; overflow: hidden; }
-    .chat-layout { display: flex; height: calc(100vh - 76px); width: 100vw; overflow: hidden; background: var(--bg); }
-
-    /* Server Sidebar */
-    .guilds-panel { width: 72px; background: #040408; border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 12px; }
-    .guild-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--card); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; color: var(--accent); cursor: pointer; transition: all 0.2s ease; border: 1px solid var(--border); }
-    .guild-icon:hover, .guild-icon.active { border-radius: 16px; background: var(--accent); color: #fff; }
-    .guild-icon.add { font-size: 1.4rem; color: var(--text-muted); border-color: rgba(255,255,255,0.12); }
-    .guild-icon.add:hover { background: rgba(255,255,255,0.04); color: var(--text); }
-
-    /* Channel Sidebar */
-    .channels-sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-    .sidebar-header { padding: 1rem 1.2rem; font-family: var(--font-display); font-weight: 700; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
-    .sidebar-header button { border: none; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
-    .channel-category { margin: 1rem 1.2rem 0.5rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-muted); font-size: 0.75rem; }
-    .channel-list { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
-    .channel-item { padding: 10px 14px; border-radius: var(--radius-m); color: var(--text-muted); font-size: 0.95rem; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: background 0.2s ease, color 0.2s ease; }
-    .channel-item:before { content: "#"; font-weight: 400; color: rgba(255,255,255,0.25); font-size: 1.05rem; }
-    .channel-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
-    .channel-item.active { color: var(--accent); background: rgba(108, 99, 255, 0.08); }
-
-    .channel-actions { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin: 0 1.2rem 1rem; }
-    .channel-actions button { border: 1px solid rgba(255,255,255,0.08); background: transparent; color: var(--text-muted); padding: 8px 12px; border-radius: 999px; cursor: pointer; font-size: 0.85rem; }
-    .channel-actions button:hover { border-color: rgba(108,99,255,0.3); color: var(--text); }
-
-    .voice-panel { background: #05060c; margin: 0 1.2rem 1rem; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 1rem; }
-    .voice-title { display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.9rem; }
-    .voice-status { display: flex; align-items: center; gap: 0.5rem; }
-    .voice-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
-    .voice-main { display: flex; gap: 0.75rem; align-items: center; }
-    .voice-main .msg-avatar { width: 42px; height: 42px; border-radius: 14px; }
-    .voice-main .voice-info { display: flex; flex-direction: column; gap: 2px; }
-    .voice-main .voice-info span { color: var(--text-muted); font-size: 0.85rem; }
+    .chat-layout { display: flex; justify-content: center; align-items: stretch; height: calc(100vh - 76px); width: 100vw; overflow: hidden; background: var(--bg); }
 
     /* Main Chat Stream Container */
-    .chat-main { flex: 1; display: flex; flex-direction: column; background: #090a14; overflow: hidden; }
+    .chat-main { width: 100%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; background: #090a14; overflow: hidden; }
     .chat-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0.95rem 1.5rem; border-bottom: 1px solid var(--border); }
     .chat-meta { display: flex; align-items: center; gap: 0.75rem; }
     .channel-title { font-family: var(--font-display); font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .chat-meta span { color: var(--text-muted); font-size: 0.85rem; }
-    .chat-actions { display: flex; align-items: center; gap: 0.8rem; }
-    .chat-actions button { border: 1px solid rgba(255,255,255,0.08); background: transparent; color: var(--text-muted); padding: 8px 12px; border-radius: 999px; cursor: pointer; font-size: 0.85rem; }
-    .chat-actions button:hover { border-color: rgba(108,99,255,0.3); color: var(--text); }
-
-    .chat-topic { padding: 0.85rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.9rem; background: rgba(255,255,255,0.02); }
 
     .message-scroller { flex: 1; padding: 1.4rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
 
@@ -66,34 +29,12 @@
     .msg-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
     .reaction-pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); font-size: 0.82rem; }
 
-    .pinned-panel { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 15px; padding: 1rem 1.2rem; margin: 0 1.5rem 1rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-    .pinned-panel strong { color: var(--text); }
-
     /* Message Input */
     .input-container { padding: 0 1.5rem 1.5rem; }
     .input-row { display: flex; gap: 0.75rem; align-items: center; }
     .input-container .input-field { width: 100%; background: var(--surface); padding: 14px 18px; border-radius: 999px; border: 1px solid var(--border); color: var(--text); }
     .send-btn { min-width: 130px; }
 
-    /* Members and Friends Panel */
-    .members-panel { width: 280px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
-    .member-header { padding: 1rem 1.4rem; font-family: var(--font-display); font-weight: 700; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .member-header button { border: none; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
-    .friend-search { padding: 1rem 1.4rem 0.8rem; }
-    .friend-search .input-field { width: 100%; border-radius: 999px; }
-    .friend-list { padding: 0 1rem 1rem; display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto; flex: 1; }
-    .friend-card { display: flex; align-items: center; gap: 0.85rem; padding: 0.95rem 1rem; border-radius: 16px; background: var(--card); border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: transform 0.18s ease, border-color 0.18s ease; }
-    .friend-card:hover { transform: translateY(-1px); border-color: rgba(108,99,255,0.2); }
-    .friend-avatar { width: 42px; height: 42px; border-radius: 50%; background: #0f1221; display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: var(--font-display); font-weight: 800; }
-    .friend-meta { display: flex; flex-direction: column; }
-    .friend-meta strong { font-size: 0.95rem; }
-    .friend-meta span { color: var(--text-muted); font-size: 0.82rem; }
-    .friend-status { display: flex; align-items: center; gap: 0.4rem; color: var(--text-muted); font-size: 0.82rem; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
-    .member-footer { padding: 1rem 1.4rem; border-top: 1px solid var(--border); }
-    .member-footer button { width: 100%; }
-    .btn-secondary { border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--text); padding: 12px 16px; border-radius: 999px; cursor: pointer; transition: background 0.2s ease, border-color 0.2s ease; }
-    .btn-secondary:hover { background: rgba(255,255,255,0.08); border-color: rgba(108,99,255,0.3); }
   </style>
 </head>
 <body>
@@ -114,54 +55,12 @@
   </header>
 
   <main class="chat-layout">
-    <div class="guilds-panel">
-      <div class="guild-icon active">CG</div>
-      <div class="guild-icon">G</div>
-      <div class="guild-icon">D</div>
-      <div class="guild-icon add">+</div>
-    </div>
-
-    <aside class="channels-sidebar">
-      <div class="sidebar-header">
-        <span>Servers</span>
-        <button title="Add server">+</button>
-      </div>
-      <div class="channel-category">TEXT CHANNELS</div>
-      <div class="channel-list">
-        <div class="channel-item active">general-lobby</div>
-        <div class="channel-item">lobby-matchmaking</div>
-        <div class="channel-item">announcements</div>
-        <div class="channel-item">dev-changelog</div>
-      </div>
-      <div class="channel-actions">
-        <button>Friends</button>
-        <button>Threads</button>
-      </div>
-      <div class="voice-panel">
-        <div class="voice-title"><span>Voice Channel</span><span class="voice-dot"></span></div>
-        <div class="voice-main">
-          <div class="msg-avatar">V</div>
-          <div class="voice-info">
-            <strong>Community Voice</strong>
-            <span>Connected · 12 listeners</span>
-          </div>
-        </div>
-      </div>
-    </aside>
-
     <section class="chat-main">
       <div class="chat-header">
         <div class="chat-meta">
           <div class="channel-title"><span>#</span><strong>general-lobby</strong></div>
-          <span>Active now · 182 members</span>
-        </div>
-        <div class="chat-actions">
-          <button>Bookmark</button>
-          <button>Invite</button>
         </div>
       </div>
-      <div class="chat-topic"><strong>Topic:</strong> Community announcements, event alerts, and game support in one place.</div>
-      <div class="pinned-panel"><span><strong>Pinned:</strong> Welcome to CarsonGames chat! Use /help for commands.</span><button>View</button></div>
       <div class="message-scroller" id="message-scroller">
       </div>
       <div class="input-container">
@@ -171,37 +70,6 @@
         </div>
       </div>
     </section>
-
-    <aside class="members-panel">
-      <div class="member-header">
-        <span>Friends</span>
-        <button title="Add friend">+</button>
-      </div>
-      <div class="friend-search">
-        <input id="friend-filter" type="text" class="input-field" placeholder="Find friends..." aria-label="Search friends">
-      </div>
-      <div class="friend-list" id="friend-list">
-        <div class="friend-card" data-name="Nova">
-          <div class="friend-avatar">N</div>
-          <div class="friend-meta"><strong>Nova</strong><span class="friend-status"><span class="status-dot"></span> Online</span></div>
-        </div>
-        <div class="friend-card" data-name="PixelPunk">
-          <div class="friend-avatar">P</div>
-          <div class="friend-meta"><strong>PixelPunk</strong><span class="friend-status"><span class="status-dot"></span> In Game</span></div>
-        </div>
-        <div class="friend-card" data-name="EchoBot">
-          <div class="friend-avatar">E</div>
-          <div class="friend-meta"><strong>EchoBot</strong><span class="friend-status"><span class="status-dot"></span> Idle</span></div>
-        </div>
-        <div class="friend-card" data-name="Luna">
-          <div class="friend-avatar">L</div>
-          <div class="friend-meta"><strong>Luna</strong><span class="friend-status"><span class="status-dot"></span> Offline</span></div>
-        </div>
-      </div>
-      <div class="member-footer">
-        <button class="btn-secondary">Add Friend</button>
-      </div>
-    </aside>
   </main>
 
 <script type="module">
