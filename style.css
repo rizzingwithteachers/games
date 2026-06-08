@@ -109,6 +109,25 @@ nav a:hover, nav a.active {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.nav-auth-btn {
+  background: var(--accent);
+  color: #fff !important;
+  padding: 8px 18px !important;
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  text-decoration: none !important;
+  display: inline-block;
+  transition: all 0.25s var(--ease);
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.3);
+}
+
+.nav-auth-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(108, 99, 255, 0.4);
+  background: rgba(108, 99, 255, 0.9) !important;
+}
+
 /* ── UTILITY BUTTONS & INPUTS ─────────────────────────── */
 .btn-primary {
   background: var(--accent);

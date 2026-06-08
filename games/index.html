@@ -31,6 +31,7 @@
           <li><a href="#" class="active">Games</a></li>
           <li><a href="../proxy/">Proxy</a></li>
           <li><a href="../chat/">Chat</a></li>
+          <li id="auth-button-container"></li>
         </ul>
       </nav>
     </div>
@@ -107,6 +108,41 @@
       const headerCount = document.querySelector('.header-bar h2');
       if(headerCount) headerCount.textContent = `Games (${cards.length})`;
     })();
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
+      authDomain: "carson-games.firebaseapp.com",
+      projectId: "carson-games",
+      storageBucket: "carson-games.firebasestorage.app",
+      messagingSenderId: "856520252558",
+      appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, (user) => {
+      const container = document.getElementById('auth-button-container');
+      if (user) {
+        container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
+        document.getElementById('logout-btn').addEventListener('click', async (e) => {
+          e.preventDefault();
+          try {
+            await signOut(auth);
+            window.location.reload();
+          } catch (err) {
+            console.error('Logout error:', err);
+          }
+        });
+      } else {
+        container.innerHTML = '<a href="../login/" class="nav-auth-btn">Sign In</a>';
+      }
+    });
   </script>
 
 </body>
