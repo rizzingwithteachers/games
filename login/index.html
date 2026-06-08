@@ -64,9 +64,8 @@
 </main>
 
 <script type="module">
-/* ================= FIREBASE IMPORTS ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { 
+import {
   getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -77,10 +76,11 @@ import {
   getFirestore,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-/* ================= CONFIG ================= */
+/* CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
   authDomain: "carson-games.firebaseapp.com",
@@ -94,7 +94,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ================= ELEMENTS ================= */
+/* ELEMENTS */
 const form = document.getElementById("auth-form");
 const title = document.getElementById("auth-title");
 const nameField = document.getElementById("name-field");
@@ -103,90 +103,81 @@ const submitBtn = document.getElementById("auth-submit");
 
 const email = document.getElementById("email");
 const password = document.getElementById("password");
-const name = document.getElementById("name");
+const nameInput = document.getElementById("name");
 
 let signUpMode = false;
 
-/* ================= SIGN UP (NOW SAVES USERNAME) ================= */
-async function signUp(nameVal, emailVal, passwordVal) {
-  try {
-    // block empty username BEFORE creating account
-    if (!nameVal || !nameVal.trim()) {
-      alert("Username is required");
-      return false;
-    }
-
-    const userCred = await createUserWithEmailAndPassword(
-      auth,
-      emailVal,
-      passwordVal
-    );
-
-    // save user with REQUIRED username
-    await setDoc(doc(db, "users", userCred.user.uid), {
-      username: nameVal.trim(),
-      email: emailVal,
-      createdAt: Date.now()
-    });
-
-    return true;
-
-  } catch (err) {
-    alert(err.message);
+/* SIGN UP */
+async function signUp(username, emailVal, passwordVal) {
+  if (!username?.trim()) {
+    alert("Username is required");
     return false;
   }
+
+  const cred = await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
+
+  await setDoc(doc(db, "users", cred.user.uid), {
+    username: username.trim(),
+    email: emailVal,
+    createdAt: serverTimestamp()
+  });
+
+  return true;
 }
 
-/* ================= SIGN IN ================= */
+/* SIGN IN */
 async function signIn(emailVal, passwordVal) {
-  try {
-    await signInWithEmailAndPassword(auth, emailVal, passwordVal);
-    return true;
-  } catch (err) {
-    alert(err.message);
-    return false;
-  }
+  await signInWithEmailAndPassword(auth, emailVal, passwordVal);
+  return true;
 }
 
-/* ================= TOGGLE MODE ================= */
+/* TOGGLE MODE */
 toggle.addEventListener("click", () => {
   signUpMode = !signUpMode;
 
   nameField.classList.toggle("hidden", !signUpMode);
+
   title.textContent = signUpMode ? "Create account" : "Sign in";
   submitBtn.textContent = signUpMode ? "Create account" : "Sign in";
-  const modeText = document.getElementById("mode-text");
-  modeText.textContent = signUpMode ? "Already have an account?" : "Don't have an account?";
+
+  document.getElementById("mode-text").textContent =
+    signUpMode ? "Already have an account?" : "Don't have an account?";
+
   toggle.textContent = signUpMode ? "Sign in" : "Create account";
 });
 
-/* ================= FORM ================= */
+/* FORM */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const emailVal = email.value.trim();
   const passwordVal = password.value.trim();
-  const nameVal = name.value.trim();
+  const usernameVal = nameInput.value.trim();
 
   if (!emailVal || !passwordVal) {
     alert("Enter email and password");
     return;
   }
 
-  const success = signUpMode
-    ? await signUp(nameVal, emailVal, passwordVal)
-    : await signIn(emailVal, passwordVal);
+  let ok = false;
 
-  if (success) {
-    window.location.href = "./index.html";
+  if (signUpMode) {
+    ok = await signUp(usernameVal, emailVal, passwordVal);
+  } else {
+    ok = await signIn(emailVal, passwordVal);
+  }
+
+  if (ok) {
+    window.location.replace("../chat/");
   }
 });
 
-/* ================= AUTO LOGIN CHECK ================= */
+/* FIXED AUTH CHECK (NO LOOP + NO RANDOM REDIRECTS) */
 onAuthStateChanged(auth, (user) => {
-  if (user) {
-    window.location.href = "../chat/";
-  }
+  // IMPORTANT: do NOT redirect here unless needed
+  // This prevents page flicker / loop
+
+  if (!user) return;
 });
 </script>
 

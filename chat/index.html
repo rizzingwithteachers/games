@@ -212,6 +212,7 @@ import {
   getFirestore,
   collection,
   addDoc,
+  setDoc,
   query,
   orderBy,
   limit,
@@ -252,24 +253,32 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   currentUser = user;
-  
-  // Get username from Firestore
+
   const userRef = doc(db, "users", user.uid);
-  const userDoc = await getDoc(userRef);
-  
-  if (!userDoc.exists()) {
-    const fallbackName = user.email.split("@")[0];
-  
-    await setDoc(userRef, {
-      username: fallbackName,
-      createdAt: serverTimestamp()
-    });
-  
-    currentUsername = fallbackName;
-  } else {
-    currentUsername = userDoc.data().username;
+
+  let username = "User";
+
+  try {
+    const snap = await getDoc(userRef);
+
+    if (snap.exists() && snap.data().username) {
+      username = snap.data().username;
+    } else {
+      // auto-fix missing profile (only once)
+      await setDoc(userRef, {
+        username: user.email.split("@")[0],
+        email: user.email,
+        createdAt: Date.now()
+      }, { merge: true });
+
+      username = user.email.split("@")[0];
+    }
+  } catch (err) {
+    console.error("User load error:", err);
   }
-  
+
+  currentUsername = username;
+
   startChat(user);
   addLogout();
 });
@@ -492,6 +501,8 @@ function addLogout() {
     window.location.href = "../login/";
   };
 
+  // Replace any existing auth controls with Logout
+  container.innerHTML = '';
   container.appendChild(a);
 }
 </script>
