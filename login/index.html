@@ -143,6 +143,9 @@ toggle.addEventListener("click", () => {
   nameField.classList.toggle("hidden", !signUpMode);
   title.textContent = signUpMode ? "Create account" : "Sign in";
   submitBtn.textContent = signUpMode ? "Create account" : "Sign in";
+  const modeText = document.getElementById("mode-text");
+  modeText.textContent = signUpMode ? "Already have an account?" : "Don't have an account?";
+  toggle.textContent = signUpMode ? "Sign in" : "Create account";
 });
 
 /* ================= FORM ================= */

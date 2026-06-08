@@ -297,14 +297,15 @@ function startChat(user) {
 
 /* LOGOUT */
 function addLogout() {
-  const nav = document.querySelector("nav ul");
-  if (!nav) return;
+  const container = document.getElementById('auth-button-container');
+  if (!container) return;
 
-  const li = document.createElement("li");
   const a = document.createElement("a");
 
   a.textContent = "Logout";
   a.href = "#";
+  a.className = "nav-auth-btn";
+  a.id = "logout-btn";
 
   a.onclick = async (e) => {
     e.preventDefault();
@@ -312,8 +313,7 @@ function addLogout() {
     window.location.href = "../login/";
   };
 
-  li.appendChild(a);
-  nav.appendChild(li);
+  container.appendChild(a);
 }
 </script>
 

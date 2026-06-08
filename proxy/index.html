@@ -34,7 +34,7 @@
   <main class="proxy-wrapper">
     <div class="browser-bar">
       <div style="font-family:var(--font-display);font-weight:700;color:var(--text);margin-right:8px;">Proxy</div>
-      <input type="text" class="input-field" value="https://proxy.engine.carsongames.internal/secure-frame" placeholder="Enter remote destination vector URL...">
+      <input type="text" class="input-field" value="" placeholder="Enter remote destination vector URL...">
       <button class="btn-primary" style="padding: 0 18px; height: 40px; font-size: 0.95rem;">Go</button>
     </div>
     
@@ -66,21 +66,21 @@
   onAuthStateChanged(auth, (user) => {
     const container = document.getElementById('auth-button-container');
     if (!user) {
-      container.innerHTML = '<a href="../login/" class="nav-auth-btn">Sign In</a>';
-      window.location.href = "../login/";
-    } else {
-      container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-      document.getElementById('logout-btn').addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-          await signOut(auth);
-          window.location.reload();
-        } catch (err) {
-          console.error('Logout error:', err);
-        }
-      });
-      console.log("Proxy access granted:", user.email);
+      window.location.replace("../login/");
+      return;
     }
+    
+    container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
+    document.getElementById('logout-btn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        await signOut(auth);
+        window.location.reload();
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    });
+    console.log("Proxy access granted:", user.email);
   });
   </script>
 
