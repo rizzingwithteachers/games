@@ -18,17 +18,33 @@
       font-weight: 800;
       line-height: 1.1;
       margin-bottom: 1rem;
+      animation: textGlow 3s ease-in-out infinite;
+    }
+    @keyframes textGlow {
+      0%, 100% { text-shadow: 0 0 20px rgba(108, 99, 255, 0.2); }
+      50% { text-shadow: 0 0 40px rgba(108, 99, 255, 0.4); }
     }
     .hero h1 span {
       background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-size: 200% 200%;
+      animation: gradientShift 4s ease infinite;
+    }
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
     .hero p {
       color: var(--text-muted);
       max-width: 580px;
       margin: 0 auto 2rem;
       font-size: 1.1rem;
+      animation: fadeInUp 0.8s ease-out 0.3s both;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
     }
     .grid {
       display: grid;
@@ -44,16 +60,30 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-l);
       padding: 2.5rem 2rem;
-      transition: all 0.3s var(--ease);
+      transition: all 0.35s var(--ease);
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(108, 99, 255, 0.1) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.35s var(--ease);
+      pointer-events: none;
     }
     .card:hover {
-      transform: translateY(-5px);
-      border-color: rgba(108, 99, 255, 0.3);
+      transform: translateY(-8px) scale(1.02);
+      border-color: rgba(108, 99, 255, 0.5);
       background: var(--card-hover);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      box-shadow: 0 24px 48px rgba(108, 99, 255, 0.2), 0 0 40px rgba(108, 99, 255, 0.1);
+    }
+    .card:hover::before {
+      opacity: 1;
     }
     .card h3 {
       font-family: var(--font-display);
