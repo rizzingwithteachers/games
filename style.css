@@ -231,8 +231,8 @@ footer {
 
 /* ── ENTRANCE ANIMATIONS (CSS-only) ───────────────────── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); filter: blur(3px) saturate(0.98); }
-  to   { opacity: 1; transform: none; filter: none; }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes slideInLeft {
@@ -258,24 +258,24 @@ footer {
 /* Apply varied entrance animations to main UI pieces */
 header { animation: slideInLeft 600ms var(--ease) both; }
 .hero { animation: fadeUp 600ms var(--ease) both; }
-.grid { animation: fadeUp 600ms var(--ease) both 100ms; }
+.grid { animation: fadeUp 600ms var(--ease) both; }
 .chat-layout { animation: fadeUp 480ms var(--ease) both; }
 .guilds-panel { animation: slideInLeft 500ms var(--ease) both; }
-.channels-sidebar { animation: slideInLeft 550ms var(--ease) both 50ms; }
-.chat-main { animation: slideInRight 500ms var(--ease) both 100ms; }
+.channels-sidebar { animation: slideInLeft 550ms var(--ease) both; }
+.chat-main { animation: slideInRight 500ms var(--ease) both; }
 .frame-viewport { animation: fadeUp 480ms var(--ease) both; }
 
 /* Staggered animations for cards with alternating directions */
-.grid > .card:nth-child(1) { animation: fadeUp 480ms var(--ease) both 120ms; }
-.grid > .card:nth-child(2) { animation: scaleIn 480ms var(--ease) both 160ms; }
-.grid > .card:nth-child(3) { animation: fadeUp 480ms var(--ease) both 200ms; }
-.grid > .card:nth-child(4) { animation: scaleIn 480ms var(--ease) both 240ms; }
+.grid > .card:nth-child(1) { animation: fadeUp 480ms var(--ease) both; }
+.grid > .card:nth-child(2) { animation: scaleIn 480ms var(--ease) both; }
+.grid > .card:nth-child(3) { animation: fadeUp 480ms var(--ease) both; }
+.grid > .card:nth-child(4) { animation: scaleIn 480ms var(--ease) both; }
 
-.game-grid > .game-card:nth-child(1) { animation: fadeUp 480ms var(--ease) both 100ms; }
-.game-grid > .game-card:nth-child(2) { animation: scaleIn 480ms var(--ease) both 140ms; }
-.game-grid > .game-card:nth-child(3) { animation: fadeUp 480ms var(--ease) both 180ms; }
-.game-grid > .game-card:nth-child(4) { animation: scaleIn 480ms var(--ease) both 220ms; }
-.game-grid > .game-card:nth-child(n+5) { animation: fadeUp 480ms var(--ease) both 260ms; }
+.game-grid > .game-card:nth-child(1) { animation: fadeUp 480ms var(--ease) both; }
+.game-grid > .game-card:nth-child(2) { animation: scaleIn 480ms var(--ease) both; }
+.game-grid > .game-card:nth-child(3) { animation: fadeUp 480ms var(--ease) both; }
+.game-grid > .game-card:nth-child(4) { animation: scaleIn 480ms var(--ease) both; }
+.game-grid > .game-card:nth-child(n+5) { animation: fadeUp 480ms var(--ease) both; }
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
