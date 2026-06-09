@@ -158,7 +158,8 @@ function startChat(user) {
   const btn = document.getElementById("send-message-btn");
   const scroller = document.getElementById("message-scroller");
 
-  loadInitialMessages();
+  // OPTIMIZATION: Removed loadInitialMessages() entirely. 
+  // onSnapshot handles the initial data fetch automatically, saving 25 reads on every load.
   listenForNewMessages();
   scroller.addEventListener("scroll", handleScrollPagination);
 
@@ -223,34 +224,6 @@ function startChat(user) {
   });
 }
 
-async function loadInitialMessages() {
-  const scroller = document.getElementById("message-scroller");
-  scroller.innerHTML = ""; 
-
-  try {
-    const q = query(
-      collection(db, "messages"),
-      orderBy("timestamp", "desc"),
-      limit(25)
-    );
-    
-    const snapshot = await getDocs(q);
-    const messages = snapshot.docs.reverse(); 
-    
-    if (messages.length > 0) {
-      lastLoadedTimestamp = messages[0].data().timestamp;
-    }
-    
-    messages.forEach(doc => {
-      displayMessage(scroller, doc.data());
-    });
-    
-    scroller.scrollTop = scroller.scrollHeight;
-  } catch (err) {
-    console.error("Error loading messages:", err);
-  }
-}
-
 function listenForNewMessages() {
   const scroller = document.getElementById("message-scroller");
 
@@ -264,6 +237,12 @@ function listenForNewMessages() {
     scroller.innerHTML = "";
 
     const dbMessages = snapshot.docs.map(doc => doc.data()).reverse();
+
+    // OPTIMIZATION: Set the initial baseline timestamp for pagination using the oldest document in this snapshot
+    if (!lastLoadedTimestamp && snapshot.docs.length > 0) {
+      const oldestDoc = snapshot.docs[snapshot.docs.length - 1];
+      lastLoadedTimestamp = oldestDoc.data().timestamp;
+    }
 
     // DEDUPLICATION LOOKUP: Drop items from memory tracking if they are confirmed saved in the DB
     const confirmedDbClientIds = new Set(dbMessages.map(m => m.clientSideId).filter(Boolean));
@@ -318,38 +297,30 @@ async function handleScrollPagination() {
     isLoadingMore = true;
     
     try {
-      const q = query(
+      // OPTIMIZATION: Removed the extra query that pulled 25 recent items just to check timestamps.
+      // We safely proceed straight to loading items older than our tracked `lastLoadedTimestamp`.
+      const olderQuery = query(
         collection(db, "messages"),
         orderBy("timestamp", "desc"),
+        startAfter(lastLoadedTimestamp),
         limit(25)
       );
       
-      const snapshot = await getDocs(q);
-      const oldestTimestamp = snapshot.docs[snapshot.docs.length - 1]?.data().timestamp;
+      const olderSnapshot = await getDocs(olderQuery);
+      const olderMessages = olderSnapshot.docs.reverse();
       
-      if (oldestTimestamp && oldestTimestamp < lastLoadedTimestamp) {
-        const olderQuery = query(
-          collection(db, "messages"),
-          orderBy("timestamp", "desc"),
-          startAfter(lastLoadedTimestamp),
-          limit(25)
-        );
+      if (olderMessages.length > 0) {
+        // OPTIMIZATION: Update baseline to the oldest document inside our newly paginated set
+        lastLoadedTimestamp = olderSnapshot.docs[olderSnapshot.docs.length - 1].data().timestamp;
         
-        const olderSnapshot = await getDocs(olderQuery);
-        const olderMessages = olderSnapshot.docs.reverse();
+        const fragment = document.createDocumentFragment();
+        olderMessages.forEach(doc => {
+          const div = document.createElement("div");
+          div.innerHTML = displayMessage(null, doc.data(), true);
+          fragment.appendChild(div);
+        });
         
-        if (olderMessages.length > 0) {
-          lastLoadedTimestamp = olderMessages[0].data().timestamp;
-          
-          const fragment = document.createDocumentFragment();
-          olderMessages.forEach(doc => {
-            const div = document.createElement("div");
-            div.innerHTML = displayMessage(null, doc.data(), true);
-            fragment.appendChild(div);
-          });
-          
-          scroller.insertBefore(fragment, scroller.firstChild);
-        }
+        scroller.insertBefore(fragment, scroller.firstChild);
       }
     } catch (err) {
       console.error("Error loading older messages:", err);
