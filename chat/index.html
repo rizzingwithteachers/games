@@ -19,7 +19,11 @@
     .message-scroller { flex: 1; padding: 1.4rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
 
     /* Chat Message Blocks */
-    .msg-block { display: flex; gap: 1rem; align-items: flex-start; }
+    .msg-block { display: flex; gap: 1rem; align-items: flex-start; transition: opacity 0.2s ease; }
+    
+    /* Pending/Sending status style modification */
+    .msg-block.pending { opacity: 0.4; filter: brightness(0.8); }
+
     .msg-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--card); flex-shrink: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: var(--font-display); font-weight: 800; }
     .msg-content { width: 100%; }
     .msg-top { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.35rem; }
@@ -34,7 +38,6 @@
     .input-row { display: flex; gap: 0.75rem; align-items: center; }
     .input-container .input-field { width: 100%; background: var(--surface); padding: 14px 18px; border-radius: 999px; border: 1px solid var(--border); color: var(--text); }
     .send-btn { min-width: 130px; }
-
   </style>
 </head>
 <body>
@@ -74,8 +77,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } 
-from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 import {
   getFirestore,
   collection,
@@ -113,6 +115,9 @@ const MESSAGE_COOLDOWN = 2000; // 2 seconds
 let lastLoadedTimestamp = null;
 let isLoadingMore = false;
 
+// Local store to keep track of outbound messages currently mid-flight
+let localPendingQueue = [];
+
 /* AUTH CHECK (FIXED LOOP) */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -121,9 +126,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   currentUser = user;
-
   const userRef = doc(db, "users", user.uid);
-
   let username = "User";
 
   try {
@@ -132,7 +135,6 @@ onAuthStateChanged(auth, async (user) => {
     if (snap.exists() && snap.data().username) {
       username = snap.data().username;
     } else {
-      // auto-fix missing profile (only once)
       await setDoc(userRef, {
         username: user.email.split("@")[0],
         email: user.email,
@@ -146,7 +148,6 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   currentUsername = username;
-
   startChat(user);
   addLogout();
 });
@@ -157,18 +158,13 @@ function startChat(user) {
   const btn = document.getElementById("send-message-btn");
   const scroller = document.getElementById("message-scroller");
 
-  // Load initial 25 messages
   loadInitialMessages();
-
-  // Listen for new messages
   listenForNewMessages();
-
-  // Scroll up pagination
   scroller.addEventListener("scroll", handleScrollPagination);
 
-  // Send message with cooldown
   btn.onclick = async () => {
-    if (!input.value.trim()) return;
+    const textToSend = input.value.trim();
+    if (!textToSend) return;
     
     const now = Date.now();
     if (now - lastMessageTime < MESSAGE_COOLDOWN) {
@@ -177,19 +173,45 @@ function startChat(user) {
       return;
     }
 
+    // 1. CLEAR THE FIELD IMMEDIATELY
+    input.value = "";
+    lastMessageTime = now;
+
+    // 2. CREATE CLIENT-SIDE IDENTIFIER 
+    const clientSideId = "msg-" + Date.now() + Math.random().toString(36).substring(2);
+
+    // 3. GENERATE THE VISUAL CHAT BLOCK OBJECT IN LITE MEMORY ARRAY
+    const pendingMsgData = {
+      text: textToSend,
+      username: currentUsername,
+      userId: user.uid,
+      avatar: currentUsername[0].toUpperCase(),
+      timestamp: null, // No official stamp yet
+      isPending: true,
+      clientSideId: clientSideId
+    };
+
+    // Push to the processing queue and render directly
+    localPendingQueue.push(pendingMsgData);
+    displayMessage(scroller, pendingMsgData);
+    scroller.scrollTop = scroller.scrollHeight;
+
+    // 4. SHIP PAYLOAD PATHWAY TO FIRESTORE
     try {
       await addDoc(collection(db, "messages"), {
-        text: input.value.trim(),
+        text: textToSend,
         username: currentUsername,
         userId: user.uid,
         avatar: currentUsername[0].toUpperCase(),
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        clientSideId: clientSideId // Saved so we can cross reference on snapshot return
       });
-      
-      lastMessageTime = now;
-      input.value = "";
     } catch (err) {
       console.error("Error sending message:", err);
+      // Remove it from queue if it errors out
+      localPendingQueue = localPendingQueue.filter(m => m.clientSideId !== clientSideId);
+      const failedElement = document.getElementById(clientSideId);
+      if(failedElement) failedElement.remove();
     }
   };
 
@@ -203,7 +225,7 @@ function startChat(user) {
 
 async function loadInitialMessages() {
   const scroller = document.getElementById("message-scroller");
-  scroller.innerHTML = ""; // Clear mock messages
+  scroller.innerHTML = ""; 
 
   try {
     const q = query(
@@ -213,7 +235,7 @@ async function loadInitialMessages() {
     );
     
     const snapshot = await getDocs(q);
-    const messages = snapshot.docs.reverse(); // Reverse to show oldest first
+    const messages = snapshot.docs.reverse(); 
     
     if (messages.length > 0) {
       lastLoadedTimestamp = messages[0].data().timestamp;
@@ -241,10 +263,20 @@ function listenForNewMessages() {
   onSnapshot(q, (snapshot) => {
     scroller.innerHTML = "";
 
-    const messages = snapshot.docs.map(doc => doc.data()).reverse();
+    const dbMessages = snapshot.docs.map(doc => doc.data()).reverse();
 
-    messages.forEach(msg => {
+    // DEDUPLICATION LOOKUP: Drop items from memory tracking if they are confirmed saved in the DB
+    const confirmedDbClientIds = new Set(dbMessages.map(m => m.clientSideId).filter(Boolean));
+    localPendingQueue = localPendingQueue.filter(m => !confirmedDbClientIds.has(m.clientSideId));
+
+    // Print all verified messages
+    dbMessages.forEach(msg => {
       displayMessage(scroller, msg);
+    });
+
+    // Reprint unconfirmed local pending messages at the very bottom
+    localPendingQueue.forEach(pendingMsg => {
+      displayMessage(scroller, pendingMsg);
     });
 
     scroller.scrollTop = scroller.scrollHeight;
@@ -253,9 +285,14 @@ function listenForNewMessages() {
 
 function displayMessage(scroller, msgData, returnHTML = false) {
   const div = document.createElement("div");
-  div.className = "msg-block";
   
-  const time = msgData.timestamp ? new Date(msgData.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+  // Conditionally assign dark pending layout selector tags
+  div.className = "msg-block" + (msgData.isPending ? " pending" : "");
+  if(msgData.clientSideId) {
+    div.id = msgData.clientSideId;
+  }
+  
+  const time = msgData.timestamp ? new Date(msgData.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending...";
   
   div.innerHTML = `
     <div class="msg-avatar" style="background: linear-gradient(135deg, ${getGradient(msgData.username)});">${msgData.avatar}</div>
@@ -277,7 +314,6 @@ function displayMessage(scroller, msgData, returnHTML = false) {
 async function handleScrollPagination() {
   const scroller = document.getElementById("message-scroller");
   
-  // Only load more if scrolled to top and not already loading
   if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp) {
     isLoadingMore = true;
     
@@ -369,7 +405,6 @@ function addLogout() {
     window.location.href = "../login/";
   };
 
-  // Replace any existing auth controls with Logout
   container.innerHTML = '';
   container.appendChild(a);
 }
