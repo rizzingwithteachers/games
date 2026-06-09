@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carson Games</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
     .hero {
       text-align: center;
@@ -121,7 +121,7 @@
   <section class="hero">
     <a href="" class="logobig">CarsonGames</a>
     <p>New website, new games!</p>
-    <a href="login/" class="btn-primary">Sign In</a>
+    <a id="hero-signin-btn" href="login/" class="btn-primary">Sign In</a>
   </section>
 
   <main class="grid">
@@ -162,8 +162,16 @@
 
     onAuthStateChanged(auth, (user) => {
       const container = document.getElementById('auth-button-container');
+      const heroSignInBtn = document.getElementById('hero-signin-btn');
+
       if (user) {
         container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
+        
+        // Hide the middle Sign In button when logged in
+        if (heroSignInBtn) {
+          heroSignInBtn.style.display = 'none';
+        }
+
         document.getElementById('logout-btn').addEventListener('click', async (e) => {
           e.preventDefault();
           try {
@@ -175,6 +183,11 @@
         });
       } else {
         container.innerHTML = '<a href="login/" class="nav-auth-btn">Sign In</a>';
+        
+        // Show the middle Sign In button when logged out
+        if (heroSignInBtn) {
+          heroSignInBtn.style.display = '';
+        }
       }
     });
   </script>
