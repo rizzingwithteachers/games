@@ -11,7 +11,7 @@
     .chat-layout { display: flex; justify-content: center; align-items: stretch; height: calc(100vh - 76px); width: 100vw; overflow: hidden; background: var(--bg); }
 
     /* Main Chat Stream Container */
-    .chat-main { width: 100%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; background: #090a14; overflow: hidden; }
+    .chat-main { width: 100%; max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; background: #090a14; overflow: hidden; position: relative; }
     .chat-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0.95rem 1.5rem; border-bottom: 1px solid var(--border); }
     .chat-meta { display: flex; align-items: center; gap: 0.75rem; }
     .channel-title { font-family: var(--font-display); font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
@@ -20,8 +20,6 @@
 
     /* Chat Message Blocks */
     .msg-block { display: flex; gap: 1rem; align-items: flex-start; transition: opacity 0.2s ease; }
-    
-    /* Pending/Sending status style modification */
     .msg-block.pending { opacity: 0.4; filter: brightness(0.8); }
 
     .msg-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--card); flex-shrink: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: var(--font-display); font-weight: 800; }
@@ -30,14 +28,59 @@
     .msg-content h5 { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin: 0; color: var(--text); }
     .msg-content h5 span { font-size: 0.75rem; color: var(--text-muted); margin-left: 8px; font-weight: 500; }
     .msg-content p { color: #cbd5e1; font-size: 0.95rem; line-height: 1.7; margin: 0; }
-    .msg-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
-    .reaction-pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); font-size: 0.82rem; }
 
-    /* Message Input */
-    .input-container { padding: 0 1.5rem 1.5rem; }
+    /* Message Input Container */
+    .input-container { padding: 0 1.5rem 1.5rem; position: relative; }
     .input-row { display: flex; gap: 0.75rem; align-items: center; }
     .input-container .input-field { width: 100%; background: var(--surface); padding: 14px 18px; border-radius: 999px; border: 1px solid var(--border); color: var(--text); }
     .send-btn { min-width: 130px; }
+
+    /* Discord-like Autocomplete Box */
+    .suggestions-popover {
+      position: absolute;
+      bottom: calc(100% - 4px);
+      left: 1.5rem;
+      right: 1.5rem;
+      background: #111224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+      padding: 6px 0;
+    }
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      color: #cbd5e1;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-family: var(--font-body);
+      transition: background 0.15s ease;
+    }
+    .suggestion-item:hover, .suggestion-item.selected {
+      background: #232442;
+      color: #fff;
+    }
+    .suggestion-item .item-icon {
+      font-weight: bold;
+      color: #a855f7;
+    }
+    .suggestion-item .item-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -64,11 +107,15 @@
           <div class="channel-title"><span>#</span><strong>general-lobby</strong></div>
         </div>
       </div>
+      
       <div class="message-scroller" id="message-scroller">
       </div>
+
       <div class="input-container">
+        <div id="suggestions-popover" class="suggestions-popover"></div>
+        
         <div class="input-row">
-          <input id="message-input" type="text" class="input-field" placeholder="Message #general-lobby...">
+          <input id="message-input" type="text" class="input-field" placeholder="Type a message or / for a command..." autocomplete="off">
           <button id="send-message-btn" class="btn-primary send-btn">Send</button>
         </div>
       </div>
@@ -91,7 +138,8 @@ import {
   onSnapshot,
   serverTimestamp,
   doc,
-  getDoc
+  getDoc,
+  where
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 /* FIREBASE CONFIG */
@@ -108,17 +156,30 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// LOCAL CONFIGURATION
+const CHAT_COMMANDS = [
+  { name: "/w", desc: "Whisper privately to other users" }
+];
+
 let currentUser = null;
 let currentUsername = "";
 let lastMessageTime = 0;
-const MESSAGE_COOLDOWN = 2000; // 2 seconds
+const MESSAGE_COOLDOWN = 2000; 
 let lastLoadedTimestamp = null;
 let isLoadingMore = false;
 
-// Local store to keep track of outbound messages currently mid-flight
+// Stream and local cache memory data sets
+let dbPublicMessages = [];
+let dbPrivateMessages = [];
 let localPendingQueue = [];
+let localUsersCache = []; 
 
-/* AUTH CHECK (FIXED LOOP) */
+// Dropdown operational pointers
+let activeSuggestionIndex = 0;
+let currentMentionTriggerIdx = -1; 
+let currentMentionType = ""; // Tracks "command-inline", "whisper-target", or "general-mention"
+
+/* AUTH CHECK */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.replace("../login/");
@@ -148,23 +209,24 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   currentUsername = username;
-  startChat(user);
+  await startChat(user);
   addLogout();
 });
 
-/* CHAT */
-function startChat(user) {
+/* CHAT SETUP */
+async function startChat(user) {
   const input = document.getElementById("message-input");
   const btn = document.getElementById("send-message-btn");
   const scroller = document.getElementById("message-scroller");
 
-  // OPTIMIZATION: Removed loadInitialMessages() entirely. 
-  // onSnapshot handles the initial data fetch automatically, saving 25 reads on every load.
-  listenForNewMessages();
+  await fetchAndCacheUsers();
+
+  listenForNewMessages(user);
   scroller.addEventListener("scroll", handleScrollPagination);
+  setupAutocompleteEngine(input);
 
   btn.onclick = async () => {
-    const textToSend = input.value.trim();
+    let textToSend = input.value.trim();
     if (!textToSend) return;
     
     const now = Date.now();
@@ -174,212 +236,410 @@ function startChat(user) {
       return;
     }
 
-    // 1. CLEAR THE FIELD IMMEDIATELY
     input.value = "";
     lastMessageTime = now;
+    closePopover();
 
-    // 2. CREATE CLIENT-SIDE IDENTIFIER 
+    const isWhisperCommand = textToSend.startsWith("/w ");
+    let targetUsernames = [];
+    let parsedText = textToSend;
+
+    if (isWhisperCommand) {
+      const parts = textToSend.split(/\s+/);
+      let i = 1;
+      while (i < parts.length && parts[i].startsWith("@")) {
+        targetUsernames.push(parts[i].substring(1).toLowerCase());
+        i++;
+      }
+      if (targetUsernames.length > 0) {
+        parsedText = parts.slice(i).join(" ");
+      }
+    }
+
     const clientSideId = "msg-" + Date.now() + Math.random().toString(36).substring(2);
 
-    // 3. GENERATE THE VISUAL CHAT BLOCK OBJECT IN LITE MEMORY ARRAY
     const pendingMsgData = {
-      text: textToSend,
+      text: parsedText,
       username: currentUsername,
       userId: user.uid,
       avatar: currentUsername[0].toUpperCase(),
-      timestamp: null, // No official stamp yet
+      timestamp: null,
       isPending: true,
+      isWhisper: targetUsernames.length > 0,
       clientSideId: clientSideId
     };
 
-    // Push to the processing queue and render directly
     localPendingQueue.push(pendingMsgData);
-    displayMessage(scroller, pendingMsgData);
-    scroller.scrollTop = scroller.scrollHeight;
+    renderMessages();
 
-    // 4. SHIP PAYLOAD PATHWAY TO FIRESTORE
     try {
-      await addDoc(collection(db, "messages"), {
-        text: textToSend,
-        username: currentUsername,
-        userId: user.uid,
-        avatar: currentUsername[0].toUpperCase(),
-        timestamp: serverTimestamp(),
-        clientSideId: clientSideId // Saved so we can cross reference on snapshot return
-      });
+      if (targetUsernames.length > 0) {
+        let participantIds = [user.uid];
+        
+        targetUsernames.forEach(uname => {
+          const matchedUser = localUsersCache.find(u => u.username.toLowerCase() === uname);
+          if (matchedUser && !participantIds.includes(matchedUser.id)) {
+            participantIds.push(matchedUser.id);
+          }
+        });
+
+        if (participantIds.length === 1) {
+          throw new Error("No valid recipients found with those usernames in your local cache.");
+        }
+
+        await addDoc(collection(db, "whispers"), {
+          text: parsedText,
+          username: currentUsername,
+          senderId: user.uid,
+          avatar: currentUsername[0].toUpperCase(),
+          timestamp: serverTimestamp(),
+          participants: participantIds,
+          clientSideId: clientSideId
+        });
+      } else {
+        await addDoc(collection(db, "messages"), {
+          text: textToSend,
+          username: currentUsername,
+          userId: user.uid,
+          avatar: currentUsername[0].toUpperCase(),
+          timestamp: serverTimestamp(),
+          clientSideId: clientSideId
+        });
+      }
     } catch (err) {
       console.error("Error sending message:", err);
-      // Remove it from queue if it errors out
+      alert(err.message || "Failed to deliver message.");
       localPendingQueue = localPendingQueue.filter(m => m.clientSideId !== clientSideId);
-      const failedElement = document.getElementById(clientSideId);
-      if(failedElement) failedElement.remove();
+      renderMessages();
     }
   };
+}
 
-  input.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !(e.shiftKey)) {
-      e.preventDefault();
-      btn.click();
+/* CACHE DISPATCHER */
+async function fetchAndCacheUsers() {
+  try {
+    const snap = await getDocs(collection(db, "users"));
+    localUsersCache = snap.docs.map(doc => ({
+      id: doc.id,
+      username: doc.data().username || "Unknown",
+      avatar: (doc.data().username ? doc.data().username[0].toUpperCase() : "U")
+    }));
+  } catch (err) {
+    console.error("Error warming up local user cache:", err);
+  }
+}
+
+/* REAL-TIME STREAM LISTENERS */
+function listenForNewMessages(user) {
+  const publicQ = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(50));
+  onSnapshot(publicQ, (snapshot) => {
+    dbPublicMessages = snapshot.docs.map(doc => ({ ...doc.data(), isWhisper: false }));
+    if (!lastLoadedTimestamp && snapshot.docs.length > 0) {
+      lastLoadedTimestamp = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
     }
+    renderMessages();
+  });
+
+  const privateQ = query(collection(db, "whispers"), where("participants", "array-contains", user.uid));
+  onSnapshot(privateQ, (snapshot) => {
+    dbPrivateMessages = snapshot.docs.map(doc => ({ ...doc.data(), isWhisper: true }));
+    renderMessages();
   });
 }
 
-function listenForNewMessages() {
+function renderMessages() {
   const scroller = document.getElementById("message-scroller");
+  scroller.innerHTML = "";
 
-  const q = query(
-    collection(db, "messages"),
-    orderBy("timestamp", "desc"),
-    limit(50)
-  );
-
-  onSnapshot(q, (snapshot) => {
-    scroller.innerHTML = "";
-
-    const dbMessages = snapshot.docs.map(doc => doc.data()).reverse();
-
-    // OPTIMIZATION: Set the initial baseline timestamp for pagination using the oldest document in this snapshot
-    if (!lastLoadedTimestamp && snapshot.docs.length > 0) {
-      const oldestDoc = snapshot.docs[snapshot.docs.length - 1];
-      lastLoadedTimestamp = oldestDoc.data().timestamp;
-    }
-
-    // DEDUPLICATION LOOKUP: Drop items from memory tracking if they are confirmed saved in the DB
-    const confirmedDbClientIds = new Set(dbMessages.map(m => m.clientSideId).filter(Boolean));
-    localPendingQueue = localPendingQueue.filter(m => !confirmedDbClientIds.has(m.clientSideId));
-
-    // Print all verified messages
-    dbMessages.forEach(msg => {
-      displayMessage(scroller, msg);
-    });
-
-    // Reprint unconfirmed local pending messages at the very bottom
-    localPendingQueue.forEach(pendingMsg => {
-      displayMessage(scroller, pendingMsg);
-    });
-
-    scroller.scrollTop = scroller.scrollHeight;
+  let allMessages = [...dbPublicMessages, ...dbPrivateMessages];
+  allMessages.sort((a, b) => {
+    const timeA = a.timestamp ? a.timestamp.toMillis() : Date.now();
+    const timeB = b.timestamp ? b.timestamp.toMillis() : Date.now();
+    return timeA - timeB;
   });
+
+  const confirmedDbClientIds = new Set(allMessages.map(m => m.clientSideId).filter(Boolean));
+  localPendingQueue = localPendingQueue.filter(m => !confirmedDbClientIds.has(m.clientSideId));
+
+  allMessages.forEach(msg => displayMessage(scroller, msg));
+  localPendingQueue.forEach(pendingMsg => displayMessage(scroller, pendingMsg));
+  scroller.scrollTop = scroller.scrollHeight;
 }
 
 function displayMessage(scroller, msgData, returnHTML = false) {
   const div = document.createElement("div");
-  
-  // Conditionally assign dark pending layout selector tags
   div.className = "msg-block" + (msgData.isPending ? " pending" : "");
-  if(msgData.clientSideId) {
-    div.id = msgData.clientSideId;
-  }
+  if(msgData.clientSideId) div.id = msgData.clientSideId;
   
   const time = msgData.timestamp ? new Date(msgData.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending...";
-  
+  const whisperTag = msgData.isWhisper ? `<span style="color: #a855f7; font-size: 0.75rem; margin-left: 8px; background: rgba(168,85,247,0.12); padding: 2px 7px; border-radius: 99px; font-weight: 600; border: 1px solid rgba(168,85,247,0.2);">Whisper</span>` : "";
+
+  let textContent = escapeHtml(msgData.text);
+  textContent = textContent.replace(/@([a-zA-Z0-9_\-]+)/g, '<span style="color: #3b82f6; background: rgba(59,130,246,0.15); padding: 1px 5px; border-radius: 4px; font-weight: 600; border: 1px solid rgba(59,130,246,0.2);">@$1</span>');
+
   div.innerHTML = `
     <div class="msg-avatar" style="background: linear-gradient(135deg, ${getGradient(msgData.username)});">${msgData.avatar}</div>
     <div class="msg-content">
       <div class="msg-top">
-        <h5>${msgData.username} <span>${time}</span></h5>
+        <h5>${msgData.username} <span>${time}</span> ${whisperTag}</h5>
       </div>
-      <p>${escapeHtml(msgData.text)}</p>
+      <p>${textContent}</p>
     </div>
   `;
   
-  if (returnHTML) {
-    return div.innerHTML;
-  }
-  
+  if (returnHTML) return div.innerHTML;
   scroller.appendChild(div);
 }
 
+/* AUTOCOMPLETE NAVIGATION ENGINE */
+function setupAutocompleteEngine(input) {
+  const popover = document.getElementById("suggestions-popover");
+
+  input.addEventListener("input", () => {
+    const val = input.value;
+    const selectionStart = input.selectionStart;
+    
+    if (val === "/") {
+      showCommands(CHAT_COMMANDS);
+      return;
+    }
+
+    // Isolate word metrics relative to selection bounds
+    const textBeforeCursor = val.substring(0, selectionStart);
+    const words = textBeforeCursor.split(" ");
+    const currentWordIdx = words.length - 1;
+    const currentWord = words[currentWordIdx];
+    const wordStartIdx = textBeforeCursor.lastIndexOf(currentWord);
+
+    // Dynamic Context Check: Are we targeting users inside a whisper command string?
+    if (words[0] === "/w") {
+      let isTargetingPhase = true;
+      for (let i = 1; i < currentWordIdx; i++) {
+        if (!words[i].startsWith("@")) {
+          isTargetingPhase = false;
+          break;
+        }
+      }
+
+      if (isTargetingPhase) {
+        let searchStr = currentWord;
+        if (searchStr.startsWith("@")) {
+          searchStr = searchStr.substring(1);
+        }
+
+        if (currentWord === "/w" || currentWord === "") {
+          searchStr = "";
+        }
+
+        const cleanSearch = searchStr.toLowerCase();
+        const filtered = localUsersCache.filter(u => 
+          u.username.toLowerCase().startsWith(cleanSearch) && 
+          u.username.toLowerCase() !== currentUsername.toLowerCase()
+        );
+
+        if (filtered.length > 0) {
+          currentMentionTriggerIdx = wordStartIdx;
+          showMentions(filtered, currentWord === "/w" ? "command-inline" : "whisper-target");
+          return;
+        }
+      }
+    }
+
+    // Global room standard mention fallback trigger (@username)
+    const lastAtIdx = val.lastIndexOf("@", selectionStart - 1);
+    if (lastAtIdx !== -1 && (lastAtIdx === 0 || /\s/.test(val[lastAtIdx - 1]))) {
+      const searchStr = val.substring(lastAtIdx + 1, selectionStart).toLowerCase();
+      
+      if (!/\s/.test(searchStr)) {
+        currentMentionTriggerIdx = lastAtIdx;
+        const filtered = localUsersCache.filter(u => 
+          u.username.toLowerCase().startsWith(searchStr) && 
+          u.username.toLowerCase() !== currentUsername.toLowerCase()
+        );
+        
+        if (filtered.length > 0) {
+          showMentions(filtered, "general-mention");
+          return;
+        }
+      }
+    }
+
+    closePopover();
+  });
+
+  input.addEventListener("keydown", (e) => {
+    const items = popover.querySelectorAll(".suggestion-item");
+    if (popover.style.display === "block" && items.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        items[activeSuggestionIndex].classList.remove("selected");
+        activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
+        items[activeSuggestionIndex].classList.add("selected");
+        items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        items[activeSuggestionIndex].classList.remove("selected");
+        activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
+        items[activeSuggestionIndex].classList.add("selected");
+        items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        items[activeSuggestionIndex].click();
+      } else if (e.key === "Escape") {
+        closePopover();
+      }
+    } else if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      document.getElementById("send-message-btn").click();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target !== input && e.target !== popover && !popover.contains(e.target)) {
+      closePopover();
+    }
+  });
+}
+
+function showCommands(cmds) {
+  const popover = document.getElementById("suggestions-popover");
+  activeSuggestionIndex = 0;
+  popover.innerHTML = "";
+  
+  cmds.forEach((c, idx) => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item" + (idx === 0 ? " selected" : "");
+    div.innerHTML = `<span class="item-icon">/</span> <strong>${c.name}</strong> &nbsp; <span style="color:var(--text-muted); font-size:0.8rem;">${c.desc}</span>`;
+    
+    div.onclick = (e) => {
+      e.stopPropagation(); 
+      const input = document.getElementById("message-input");
+      
+      // Inserts command clean with no forced characters trailing
+      input.value = c.name + " ";
+      input.focus();
+      input.selectionStart = input.selectionEnd = input.value.length;
+      
+      closePopover();
+      input.dispatchEvent(new Event("input")); 
+    };
+    popover.appendChild(div);
+  });
+  popover.style.display = "block";
+}
+
+function showMentions(users, type) {
+  currentMentionType = type;
+  const popover = document.getElementById("suggestions-popover");
+  activeSuggestionIndex = 0;
+  popover.innerHTML = "";
+
+  users.forEach((u, idx) => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item" + (idx === 0 ? " selected" : "");
+    div.innerHTML = `
+      <div class="item-avatar" style="background: linear-gradient(135deg, ${getGradient(u.username)});">${u.avatar}</div>
+      <strong>@${u.username}</strong>
+    `;
+    
+    div.onclick = (e) => {
+      e.stopPropagation(); 
+      const input = document.getElementById("message-input");
+      const currentVal = input.value;
+      let newCursorPos = 0;
+
+      if (currentMentionType === "command-inline") {
+        input.value = "/w @" + u.username + " ";
+        newCursorPos = input.value.length;
+      } else if (currentMentionType === "whisper-target") {
+        const beforeWord = currentVal.substring(0, currentMentionTriggerIdx);
+        let spaceAfter = currentVal.indexOf(" ", currentMentionTriggerIdx);
+        let afterWord = spaceAfter !== -1 ? currentVal.substring(spaceAfter) : "";
+        
+        input.value = beforeWord + "@" + u.username + (afterWord ? afterWord : " ");
+        newCursorPos = (beforeWord + "@" + u.username + " ").length;
+      } else {
+        const beforeTrigger = currentVal.substring(0, currentMentionTriggerIdx);
+        let spaceAfter = currentVal.indexOf(" ", currentMentionTriggerIdx);
+        let afterWord = spaceAfter !== -1 ? currentVal.substring(spaceAfter) : " ";
+        
+        input.value = beforeTrigger + "@" + u.username + (afterWord.startsWith(" ") ? afterWord : " " + afterWord);
+        newCursorPos = (beforeTrigger + "@" + u.username + " ").length;
+      }
+
+      input.focus();
+      input.selectionStart = input.selectionEnd = newCursorPos;
+      closePopover();
+    };
+    popover.appendChild(div);
+  });
+  popover.style.display = "block";
+}
+
+function closePopover() {
+  const popover = document.getElementById("suggestions-popover");
+  popover.style.display = "none";
+  popover.innerHTML = "";
+}
+
+/* HISTORICAL PAGINATION */
 async function handleScrollPagination() {
   const scroller = document.getElementById("message-scroller");
-  
   if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp) {
     isLoadingMore = true;
-    
     try {
-      // OPTIMIZATION: Removed the extra query that pulled 25 recent items just to check timestamps.
-      // We safely proceed straight to loading items older than our tracked `lastLoadedTimestamp`.
-      const olderQuery = query(
-        collection(db, "messages"),
-        orderBy("timestamp", "desc"),
-        startAfter(lastLoadedTimestamp),
-        limit(25)
-      );
-      
+      const olderQuery = query(collection(db, "messages"), orderBy("timestamp", "desc"), startAfter(lastLoadedTimestamp), limit(25));
       const olderSnapshot = await getDocs(olderQuery);
       const olderMessages = olderSnapshot.docs.reverse();
       
       if (olderMessages.length > 0) {
-        // OPTIMIZATION: Update baseline to the oldest document inside our newly paginated set
         lastLoadedTimestamp = olderSnapshot.docs[olderSnapshot.docs.length - 1].data().timestamp;
-        
         const fragment = document.createDocumentFragment();
         olderMessages.forEach(doc => {
           const div = document.createElement("div");
-          div.innerHTML = displayMessage(null, doc.data(), true);
+          div.innerHTML = displayMessage(null, { ...doc.data(), isWhisper: false }, true);
           fragment.appendChild(div);
         });
-        
         scroller.insertBefore(fragment, scroller.firstChild);
       }
     } catch (err) {
       console.error("Error loading older messages:", err);
     }
-    
     isLoadingMore = false;
   }
 }
 
+// Visual asset generation utils
 function getGradient(username) {
-  const colors = [
-    "#3b82f6, #7c3aed",
-    "#f97316, #ec4899",
-    "#06b6d4, #0891b2",
-    "#10b981, #059669",
-    "#f59e0b, #d97706"
-  ];
-  
+  const colors = ["#3b82f6, #7c3aed", "#f97316, #ec4899", "#06b6d4, #0891b2", "#10b981, #059669", "#f59e0b, #d97706"];
   let hash = 0;
   for (let i = 0; i < username.length; i++) {
     hash = username.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
   return colors[Math.abs(hash) % colors.length];
 }
 
 function escapeHtml(text) {
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return text.replace(/[&<>"']/g, m => map[m]);
 }
 
-/* LOGOUT */
 function addLogout() {
   const container = document.getElementById('auth-button-container');
   if (!container) return;
-
   const a = document.createElement("a");
-
   a.textContent = "Logout";
   a.href = "#";
   a.className = "nav-auth-btn";
   a.id = "logout-btn";
-
   a.onclick = async (e) => {
     e.preventDefault();
     await signOut(auth);
     window.location.href = "../login/";
   };
-
   container.innerHTML = '';
   container.appendChild(a);
 }
 </script>
-
 </body>
 </html>
