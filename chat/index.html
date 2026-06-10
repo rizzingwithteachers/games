@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carson Games - Chat</title>
   <link rel="stylesheet" href="../style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
     body { height: 100vh; max-height: 100vh; overflow: hidden; }
     .chat-layout { display: flex; justify-content: center; align-items: stretch; height: calc(100vh - 76px); width: 100vw; overflow: hidden; background: var(--bg); }
@@ -34,6 +34,33 @@
     .input-row { display: flex; gap: 0.75rem; align-items: center; }
     .input-container .input-field { width: 100%; background: var(--surface); padding: 14px 18px; border-radius: 999px; border: 1px solid var(--border); color: var(--text); }
     .send-btn { min-width: 130px; }
+
+    /* Cooldown Banner Styling */
+    .cooldown-text {
+      color: #ef4444;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      padding-left: 1rem;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    /* Completely strips animations, interactions and darkens button */
+    .send-btn:disabled {
+      opacity: 0.4 !important;
+      filter: brightness(0.5) !important;
+      pointer-events: none !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+      transform: none !important;
+      transition: none !important;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     /* Discord-like Autocomplete Box */
     .suggestions-popover {
@@ -114,6 +141,8 @@
 
       <div class="input-container">
         <div id="suggestions-popover" class="suggestions-popover"></div>
+        
+        <div id="cooldown-timer-text" class="cooldown-text"></div>
         
         <div class="input-row">
           <input id="message-input" type="text" class="input-field" placeholder="Type a message or / for a command..." autocomplete="off">
@@ -214,6 +243,35 @@ onAuthStateChanged(auth, async (user) => {
   addLogout();
 });
 
+/* INLINE TIMER HANDLER */
+function startCooldownTimer() {
+  const btn = document.getElementById("send-message-btn");
+  const textContainer = document.getElementById("cooldown-timer-text");
+
+  // Lock UI Elements Immediately
+  btn.disabled = true;
+  textContainer.style.display = "block";
+
+  const updateDisplay = () => {
+    const elapsed = Date.now() - lastMessageTime;
+    const remaining = MESSAGE_COOLDOWN - elapsed;
+
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      btn.disabled = false;
+      textContainer.style.display = "none";
+      textContainer.textContent = "";
+    } else {
+      const secondsLeft = Math.ceil(remaining / 1000);
+      textContainer.textContent = `You must wait ${secondsLeft} more second${secondsLeft > 1 ? 's' : ''} to send a message`;
+    }
+  };
+
+  // Run initial state and start tracker loop
+  updateDisplay();
+  const countdownInterval = setInterval(updateDisplay, 100);
+}
+
 /* CHAT SETUP */
 async function startChat(user) {
   const input = document.getElementById("message-input");
@@ -232,13 +290,14 @@ async function startChat(user) {
     
     const now = Date.now();
     if (now - lastMessageTime < MESSAGE_COOLDOWN) {
-      const remaining = Math.ceil((MESSAGE_COOLDOWN - (now - lastMessageTime)) / 1000);
-      alert(`Wait ${remaining} second(s) before sending another message`);
-      return;
+      return; // Extra protection
     }
 
     input.value = "";
     lastMessageTime = now;
+    
+    // Start visual dynamic banner + lock button
+    startCooldownTimer();
     closePopover();
 
     const isWhisperCommand = textToSend.startsWith("/w ");
