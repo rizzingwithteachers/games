@@ -37,7 +37,7 @@
 
     <div id="name-field" class="input-group hidden">
       <label>Username</label>
-      <input id="name" type="text" placeholder="Username" required>
+      <input id="name" type="text" placeholder="Username">
     </div>
 
     <div class="input-group">
@@ -136,6 +136,9 @@ toggle.addEventListener("click", () => {
   signUpMode = !signUpMode;
 
   nameField.classList.toggle("hidden", !signUpMode);
+  
+  // Dynamically toggle the required attribute based on sign up mode
+  nameInput.required = signUpMode;
 
   title.textContent = signUpMode ? "Create account" : "Sign in";
   submitBtn.textContent = signUpMode ? "Create account" : "Sign in";
@@ -161,22 +164,24 @@ form.addEventListener("submit", async (e) => {
 
   let ok = false;
 
-  if (signUpMode) {
-    ok = await signUp(usernameVal, emailVal, passwordVal);
-  } else {
-    ok = await signIn(emailVal, passwordVal);
-  }
+  try {
+    if (signUpMode) {
+      ok = await signUp(usernameVal, emailVal, passwordVal);
+    } else {
+      ok = await signIn(emailVal, passwordVal);
+    }
 
-  if (ok) {
-    window.location.replace("../chat/");
+    if (ok) {
+      window.location.replace("../chat/");
+    }
+  } catch (error) {
+    console.error("Authentication Error:", error);
+    alert(error.message);
   }
 });
 
 /* FIXED AUTH CHECK (NO LOOP + NO RANDOM REDIRECTS) */
 onAuthStateChanged(auth, (user) => {
-  // IMPORTANT: do NOT redirect here unless needed
-  // This prevents page flicker / loop
-
   if (!user) return;
 });
 </script>
