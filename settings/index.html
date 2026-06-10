@@ -90,7 +90,6 @@
     .status-success { color: #4ade80; }
     .status-error { color: #f87171; }
     
-    /* Center the login prompt if user is logged out */
     .logged-out-msg {
       text-align: center;
       padding: 3rem 0;
@@ -108,7 +107,6 @@
           <li><a href="../games/">Games</a></li>
           <li><a href="../proxy/">Proxy</a></li>
           <li><a href="../chat/">Chat</a></li>
-          <li><a href="#">Settings</a></li>
           <li id="auth-button-container"></li>
         </ul>
       </nav>
@@ -133,6 +131,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getAuth, signOut, onAuthStateChanged, updateProfile, updatePassword } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    // Added Firestore imports below
+    import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
@@ -145,13 +145,13 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app); // Initialized Firestore here
 
     const settingsWrapper = document.getElementById('settings-wrapper');
     const navAuthContainer = document.getElementById('auth-button-container');
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Update Navbar Auth Button
         navAuthContainer.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
         document.getElementById('logout-btn').addEventListener('click', async (e) => {
           e.preventDefault();
@@ -163,7 +163,6 @@
           }
         });
 
-        // Render Settings Forms if User is Signed In
         settingsWrapper.innerHTML = `
           <form id="username-form" class="settings-section">
             <h3>Change Username</h3>
@@ -199,11 +198,25 @@
           msgEl.textContent = '';
 
           try {
+            // 1. Update Auth Profile
             await updateProfile(auth.currentUser, { displayName: newUsername });
-            msgEl.textContent = 'Username updated successfully!';
+
+            // 2. Update Firestore Document (Change "users" to "user" if your collection is singular)
+            const userDocRef = doc(db, "users", auth.currentUser.uid);
+            await updateDoc(userDocRef, {
+              username: newUsername // Change 'username' to 'displayName' if your chat uses that field name
+            });
+
+            msgEl.textContent = 'Username updated successfully! Refreshing...';
             msgEl.classList.add('status-success');
+            
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+
           } catch (err) {
-            msgEl.textContent = err.message;
+            console.error(err);
+            msgEl.textContent = "Error updating username: " + err.message;
             msgEl.classList.add('status-error');
           }
         });
@@ -222,7 +235,6 @@
             msgEl.classList.add('status-success');
             document.getElementById('new-password').value = '';
           } catch (err) {
-            // Firebase often requires a recent login to change passwords.
             if (err.code === 'auth/requires-recent-login') {
               msgEl.textContent = 'Security rule triggered. Please sign out and sign back in to change your password.';
             } else {
@@ -233,7 +245,6 @@
         });
 
       } else {
-        // Fallback layout if user logged out out mid-session
         navAuthContainer.innerHTML = '<a href="../login/" class="nav-auth-btn">Sign In</a>';
         settingsWrapper.innerHTML = `
           <div class="logged-out-msg">
