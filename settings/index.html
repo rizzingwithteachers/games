@@ -107,6 +107,7 @@
           <li><a href="../games/">Games</a></li>
           <li><a href="../proxy/">Proxy</a></li>
           <li><a href="../chat/">Chat</a></li>
+          <li><a href="#" class="active">Settings</a></li>
           <li id="auth-button-container"></li>
         </ul>
       </nav>
@@ -131,8 +132,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getAuth, signOut, onAuthStateChanged, updateProfile, updatePassword } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-    // Added Firestore imports below
-    import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
@@ -145,7 +145,7 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app); // Initialized Firestore here
+    const db = getFirestore(app);
 
     const settingsWrapper = document.getElementById('settings-wrapper');
     const navAuthContainer = document.getElementById('auth-button-container');
@@ -201,11 +201,11 @@
             // 1. Update Auth Profile
             await updateProfile(auth.currentUser, { displayName: newUsername });
 
-            // 2. Update Firestore Document (Change "users" to "user" if your collection is singular)
+            // 2. Safely Update Firestore Document with setDoc + merge
             const userDocRef = doc(db, "users", auth.currentUser.uid);
-            await updateDoc(userDocRef, {
-              username: newUsername // Change 'username' to 'displayName' if your chat uses that field name
-            });
+            await setDoc(userDocRef, {
+              username: newUsername
+            }, { merge: true });
 
             msgEl.textContent = 'Username updated successfully! Refreshing...';
             msgEl.classList.add('status-success');
