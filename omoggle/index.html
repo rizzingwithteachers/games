@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Showdown | CarsonGames</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ── SHOWDOWN APP LAYOUT ────────────────────────────── */
+    .showdown-container {
+      max-width: 1000px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .showdown-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-l);
+      padding: 3rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      min-height: 500px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Lobby/Matchmaking Screen View */
+    .view-stage {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      animation: scaleIn 0.4s var(--ease) both;
+    }
+
+    .view-stage.active {
+      display: flex;
+    }
+
+    .showdown-title {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .showdown-desc {
+      color: var(--text-muted);
+      max-width: 500px;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+
+    /* Loading/Matchmaking Spinner */
+    .radar-spinner {
+      width: 80px;
+      height: 80px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 2rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── SPLIT VIDEO BOXES ──────────────────────────────── */
+    .battleground {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      width: 100%;
+      margin-bottom: 2.5rem;
+    }
+
+    .player-slot {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-m);
+      aspect-ratio: 4/3;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease;
+    }
+
+    .player-slot.winning {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .player-label {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      z-index: 2;
+    }
+
+    .player-label.opponent {
+      left: auto;
+      right: 12px;
+    }
+
+    /* Simulated AI Tracking Graphic */
+    .avatar-mock {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--card-hover), var(--surface));
+      border: 2px dashed var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      position: relative;
+    }
+
+    .pulse-ring {
+      position: absolute;
+      inset: -10px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      opacity: 0;
+      animation: pulseGlow 2s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { opacity: 0.4; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+
+    .live-metrics {
+      margin-top: 1rem;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+    }
+
+    .winning .live-metrics {
+      color: var(--accent);
+    }
+
+    /* ── TIMER & TUG OF WAR SCALE ──────────────────────── */
+    .timer-banner {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 1.5rem;
+    }
+
+    .scale-wrapper {
+      width: 80%;
+      max-width: 500px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .scale-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .scale-track {
+      height: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      position: relative;
+      width: 100%;
+    }
+
+    .scale-center-notch {
+      position: absolute;
+      left: 50%;
+      top: -4px;
+      width: 2px;
+      height: 18px;
+      background: var(--text-muted);
+      transform: translateX(-50%);
+    }
+
+    .scale-needle {
+      position: absolute;
+      top: -6px;
+      width: 22px;
+      height: 22px;
+      background: var(--accent);
+      border: 3px solid #fff;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      transition: left 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    /* Big End Result Text */
+    .result-announcement {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+      display: none;
+      animation: scaleIn 0.3s var(--ease);
+    }
+
+    .action-row {
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="logo">CarsonGames</a>
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="games/">Games</a></li>
+          <li><a href="proxy/">Proxy</a></li>
+          <li><a href="chat/">Chat</a></li>
+          <li><a href="settings/">Settings</a></li>
+          <li><a href="#" class="active">Showdown</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="showdown-container">
+    <div class="showdown-card">
+
+      <div id="stage-lobby" class="view-stage active">
+        <h2 class="showdown-title">AURA SHOWDOWN</h2>
+        <p class="showdown-desc">Go head-to-head against a random player. Our advanced AI metrics judge your expression, style, and absolute posture. Highest aura wins after 15 seconds.</p>
+        <button id="btn-start" class="btn-primary">Find a Competitor</button>
+      </div>
+
+      <div id="stage-searching" class="view-stage">
+        <div class="radar-spinner"></div>
+        <h3 class="showdown-title" style="font-size: 2rem;">Finding Competitor...</h3>
+        <p class="showdown-desc">Matching you with someone looking tuffer...</p>
+        <button id="btn-cancel" class="btn-primary" style="background: var(--surface); border: 1px solid var(--border);">Cancel Search</button>
+      </div>
+
+      <div id="stage-match" class="view-stage">
+        <div id="countdown" class="timer-banner">15s</div>
+        
+        <div class="battleground">
+          <div id="slot-user" class="player-slot">
+            <span class="player-label">You</span>
+            <div class="avatar-mock">
+              😎
+              <div class="pulse-ring"></div>
+            </div>
+            <div id="user-aura-val" class="live-metrics">Aura: +100</div>
+          </div>
+
+          <div id="slot-opponent" class="player-slot">
+            <span class="player-label opponent" id="opponent-name">Stranger</span>
+            <div class="avatar-mock">
+              🥶
+              <div class="pulse-ring" style="animation-delay: 0.5s;"></div>
+            </div>
+            <div id="opp-aura-val" class="live-metrics">Aura: +100</div>
+          </div>
+        </div>
+
+        <div class="scale-wrapper">
+          <div class="scale-labels">
+            <span>Your Dominance</span>
+            <span>Opponent Dominance</span>
+          </div>
+          <div class="scale-track">
+            <div class="scale-center-notch"></div>
+            <div id="scale-needle" class="scale-needle" style="left: 50%;"></div>
+          </div>
+        </div>
+
+        <h3 id="result-text" class="result-announcement"></h3>
+
+        <div class="action-row">
+          <button id="btn-next" class="btn-primary" style="display: none;">Next Match</button>
+          <button id="btn-exit" class="btn-primary" style="display: none; background: var(--surface); border: 1px solid var(--border); margin-left: 10px;">Leave</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 CarsonGames. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Elements Setup
+    const stageLobby = document.getElementById('stage-lobby');
+    const stageSearching = document.getElementById('stage-searching');
+    const stageMatch = document.getElementById('stage-match');
+
+    const btnStart = document.getElementById('btn-start');
+    const btnCancel = document.getElementById('btn-cancel');
+    const btnNext = document.getElementById('btn-next');
+    const btnExit = document.getElementById('btn-exit');
+
+    const countdownText = document.getElementById('countdown');
+    const scaleNeedle = document.getElementById('scale-needle');
+    const opponentNameTag = document.getElementById('opponent-name');
+    
+    const userSlot = document.getElementById('slot-user');
+    const opponentSlot = document.getElementById('slot-opponent');
+    const userAuraText = document.getElementById('user-aura-val');
+    const oppAuraText = document.getElementById('opp-aura-val');
+    const resultText = document.getElementById('result-text');
+
+    // List of funny random usernames
+    const opponents = ["GigaChad_99", "SkibidiBoss", "RizzlerSupreme", "SigmaMale69", "AuraMaster", "W_Player", "LooksMaxxer"];
+
+    let matchInterval;
+    let timerInterval;
+    let currentScore = 50; // 50 means exact center (tie)
+
+    // Navigation switches
+    function switchStage(stage) {
+      stageLobby.classList.remove('active');
+      stageSearching.classList.remove('active');
+      stageMatch.classList.remove('active');
+      stage.classList.add('active');
+    }
+
+    btnStart.addEventListener('click', () => {
+      switchStage(stageSearching);
+      // Wait 3 seconds to simulate finding a real opponent
+      setTimeout(startMatchSimulation, 3000);
+    });
+
+    btnCancel.addEventListener('click', () => {
+      switchStage(stageLobby);
+    });
+
+    btnNext.addEventListener('click', () => {
+      switchStage(stageSearching);
+      setTimeout(startMatchSimulation, 2500);
+    });
+
+    btnExit.addEventListener('click', () => {
+      switchStage(stageLobby);
+    });
+
+    // Run the 15 Second Battle Sequence
+    function startMatchSimulation() {
+      switchStage(stageMatch);
+      
+      // Setup Initial Clean States
+      countdownText.style.display = 'block';
+      resultText.style.display = 'none';
+      btnNext.style.display = 'none';
+      btnExit.style.display = 'none';
+      currentScore = 50;
+      scaleNeedle.style.left = '50%';
+      userSlot.classList.remove('winning');
+      opponentSlot.classList.remove('winning');
+      
+      // Choose random username
+      opponentNameTag.innerText = opponents[Math.floor(Math.random() * opponents.length)];
+
+      let timeLeft = 15;
+      countdownText.innerText = timeLeft + "s";
+
+      // 1. Timer Countdown Countdown Loop
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        countdownText.innerText = timeLeft + "s";
+        if (timeLeft <= 0) {
+          endMatch();
+        }
+      }, 1000);
+
+      // 2. Scale Shifting Physics Loop (Updates every 350ms)
+      matchInterval = setInterval(() => {
+        // Generate random small adjustment to push scale back and forth (-12 to +12)
+        const flux = Math.floor(Math.random() * 25) - 12;
+        currentScore = Math.max(10, Math.min(90, currentScore + flux));
+        
+        // Update needle UI position
+        scaleNeedle.style.left = currentScore + '%';
+
+        // Calculate dynamic vanity metrics
+        let userAura = Math.round((100 - currentScore) * 12.5);
+        let oppAura = Math.round(currentScore * 12.5);
+        userAuraText.innerText = `Aura: +${userAura}`;
+        oppAuraText.innerText = `Aura: +${oppAura}`;
+
+        // Visually outline who is temporarily winning
+        if (currentScore < 48) {
+          userSlot.classList.add('winning');
+          opponentSlot.classList.remove('winning');
+        } else if (currentScore > 52) {
+          opponentSlot.classList.add('winning');
+          userSlot.classList.remove('winning');
+        } else {
+          userSlot.classList.remove('winning');
+          opponentSlot.classList.remove('winning');
+        }
+      }, 350);
+    }
+
+    // Wrap up battle and announce the results
+    function endMatch() {
+      clearInterval(timerInterval);
+      clearInterval(matchInterval);
+
+      countdownText.style.display = 'none';
+      resultText.style.display = 'block';
+      btnNext.style.display = 'inline-block';
+      btnExit.style.display = 'inline-block';
+
+      // Evaluate the position of the final score needle
+      if (currentScore < 48) {
+        resultText.innerText = "🏆 YOU WIN! UNMATCHED AURA";
+        resultText.style.color = "var(--accent)";
+        userSlot.classList.add('winning');
+        opponentSlot.classList.remove('winning');
+      } else if (currentScore > 52) {
+        resultText.innerText = "❌ DEFEAT. LACKING RIZZ";
+        resultText.style.color = "#ef4444";
+        opponentSlot.classList.add('winning');
+        userSlot.classList.remove('winning');
+      } else {
+        resultText.innerText = "🤝 IT'S A TIE! BOTH SIGMAS";
+        resultText.style.color = "var(--text-muted)";
+        userSlot.classList.remove('winning');
+        opponentSlot.classList.remove('winning');
+      }
+    }
+  </script>
+</body>
+</html>
