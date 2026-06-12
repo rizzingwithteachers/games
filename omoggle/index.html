@@ -3,56 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carson Games | Showdown</title>
+  <title>Carson Games</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
-  <style>
-    .hero {
-      text-align: center;
-      padding: 6rem 2rem 2rem;
-      background: radial-gradient(circle at top center, rgba(108,99,255,0.08) 0%, transparent 65%);
-    }
-    .hero h1 {
-      font-family: var(--font-display);
-      font-size: 3.5rem;
-      font-weight: 800;
-      line-height: 1.1;
-      margin-bottom: 1rem;
-      animation: textGlow 3s ease-in-out infinite;
-    }
-    @keyframes textGlow {
-      0%, 100% { text-shadow: 0 0 20px rgba(108, 99, 255, 0.2); }
-      50% { text-shadow: 0 0 40px rgba(108, 99, 255, 0.4); }
-    }
-    .hero h1 span {
-      background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-size: 200% 200%;
-      animation: gradientShift 4s ease infinite;
-    }
-    @keyframes gradientShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    .hero p {
-      color: var(--text-muted);
-      max-width: 580px;
-      margin: 0 auto 2rem;
-      font-size: 1.1rem;
-      animation: fadeInUp 0.8s ease-out 0.3s both;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: none; }
-    }
+  
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
+  <style>
     /* ── SHOWDOWN STYLES ────────────────────────────────── */
     .showdown-container {
       max-width: 1000px;
-      margin: 0 auto 6rem;
+      margin: 2.5rem auto 4rem;
       padding: 0 2rem;
       width: 100%;
+      box-sizing: border-box;
     }
 
     .showdown-card {
@@ -63,12 +27,11 @@
       text-align: center;
       position: relative;
       overflow: hidden;
-      min-height: 480px;
+      min-height: 460px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      transition: all 0.35s var(--ease);
     }
 
     .view-stage {
@@ -76,7 +39,6 @@
       display: none;
       flex-direction: column;
       align-items: center;
-      animation: scaleIn 0.4s var(--ease) both;
     }
 
     .view-stage.active {
@@ -134,12 +96,10 @@
       align-items: center;
       position: relative;
       overflow: hidden;
-      transition: all 0.3s ease;
     }
 
     .player-slot.winning {
       border-color: var(--accent);
-      box-shadow: 0 0 20px var(--accent-glow);
     }
 
     .player-label {
@@ -165,7 +125,7 @@
       width: 90px;
       height: 90px;
       border-radius: 50%;
-      background: linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(255, 255, 255, 0.02));
+      background: rgba(255, 255, 255, 0.02);
       border: 2px solid var(--border);
       display: flex;
       align-items: center;
@@ -173,12 +133,19 @@
       position: relative;
     }
 
+    .avatar-text {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
     .avatar-scanner-line {
       position: absolute;
       width: 100%;
       height: 2px;
       background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
       top: 0;
       animation: scan 2s linear infinite;
     }
@@ -186,21 +153,6 @@
     @keyframes scan {
       0%, 100% { top: 0%; opacity: 0.3; }
       50% { top: 100%; opacity: 1; }
-    }
-
-    .pulse-ring {
-      position: absolute;
-      inset: -8px;
-      border: 2px solid var(--accent);
-      border-radius: 50%;
-      opacity: 0;
-      animation: pulseGlow 2s infinite;
-    }
-
-    @keyframes pulseGlow {
-      0% { transform: scale(0.8); opacity: 0; }
-      50% { opacity: 0.3; }
-      100% { transform: scale(1.2); opacity: 0; }
     }
 
     .live-metrics {
@@ -270,7 +222,6 @@
       border-radius: 50%;
       transform: translateX(-50%);
       transition: left 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 0 10px var(--accent);
     }
 
     .result-announcement {
@@ -279,13 +230,42 @@
       font-weight: 800;
       margin-bottom: 1.5rem;
       display: none;
-      animation: scaleIn 0.3s var(--ease);
     }
 
     .action-row {
       margin-top: 2rem;
       display: flex;
       gap: 12px;
+    }
+
+    /* ── IPAD 9TH GENERATION OPTIMIZATIONS ───────────────── */
+    @media only screen and (min-width: 768px) and (max-width: 1080px) {
+      .showdown-container {
+        max-width: 100%;
+        margin: 1.5rem auto 3rem;
+        padding: 0 1.5rem;
+      }
+      .showdown-card {
+        padding: 2.5rem 1.5rem;
+        min-height: 420px;
+      }
+      .battleground {
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+      }
+      .player-slot {
+        aspect-ratio: 4/3;
+      }
+      .avatar-mock {
+        width: 80px;
+        height: 80px;
+      }
+      /* Ensure touch targets are easy to tap on iPad screen */
+      .btn-primary {
+        padding: 14px 28px;
+        font-size: 0.95rem;
+        min-height: 48px;
+      }
     }
   </style>
 </head>
@@ -306,12 +286,6 @@
       </nav>
     </div>
   </header>
-
-  <section class="hero">
-    <a href="" class="logobig">CarsonGames</a>
-    <p>New website, new games!</p>
-    <a id="hero-signin-btn" href="login/" class="btn-primary">Sign In</a>
-  </section>
 
   <main class="showdown-container">
     <div class="showdown-card">
@@ -337,7 +311,7 @@
             <span class="player-label">You</span>
             <div class="avatar-mock">
               <div class="avatar-scanner-line"></div>
-              <div class="pulse-ring"></div>
+              <span class="avatar-text">LIVE FEED</span>
             </div>
             <div id="user-aura-val" class="live-metrics">Aura: +100</div>
           </div>
@@ -346,7 +320,7 @@
             <span class="player-label opponent" id="opponent-name">Stranger</span>
             <div class="avatar-mock">
               <div class="avatar-scanner-line" style="animation-delay: 0.5s;"></div>
-              <div class="pulse-ring" style="animation-delay: 0.5s;"></div>
+              <span class="avatar-text">REMOTE</span>
             </div>
             <div id="opp-aura-val" class="live-metrics">Aura: +100</div>
           </div>
@@ -374,32 +348,94 @@
     </div>
   </main>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, limit, doc, runTransaction, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
+      authDomain: "carson-games.firebaseapp.com",
+      projectId: "carson-games",
+      storageBucket: "carson-games.firebasestorage.app",
+      messagingSenderId: "856520252558",
+      appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
+    };
+
+    // Initialize Systems
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // DOM References
     const stageLobby = document.getElementById('stage-lobby');
     const stageSearching = document.getElementById('stage-searching');
     const stageMatch = document.getElementById('stage-match');
-
     const btnStart = document.getElementById('btn-start');
     const btnCancel = document.getElementById('btn-cancel');
     const btnNext = document.getElementById('btn-next');
     const btnExit = document.getElementById('btn-exit');
-
     const countdownText = document.getElementById('countdown');
     const scaleNeedle = document.getElementById('scale-needle');
     const opponentNameTag = document.getElementById('opponent-name');
-    
     const userSlot = document.getElementById('slot-user');
     const opponentSlot = document.getElementById('slot-opponent');
     const userAuraText = document.getElementById('user-aura-val');
     const oppAuraText = document.getElementById('opp-aura-val');
     const resultText = document.getElementById('result-text');
 
-    const opponents = ["GigaChad_99", "SkibidiBoss", "RizzlerSupreme", "SigmaMale69", "AuraMaster", "W_Player", "LooksMaxxer"];
+    // WebRTC Application States
+    let peer = null;
+    let myPeerId = null;
+    let currentConnection = null;
+    let isHost = false;
+    let activeQueueDocRef = null;
+    let queueListenerUnsubscribe = null;
+    let inQueueProcess = false; // Prevents button spam database calls
 
     let matchInterval;
     let timerInterval;
-    let currentScore = 50; 
+    let currentScore = 50;
+    let currentUserProfile = { username: "Guest" };
 
+    // Initialize PeerJS Session
+    function initPeer() {
+      peer = new Peer();
+      peer.on('open', (id) => {
+        myPeerId = id;
+      });
+
+      peer.on('connection', (conn) => {
+        isHost = true;
+        setupDataChannel(conn);
+      });
+    }
+    initPeer();
+
+    // Track Authentication States
+    onAuthStateChanged(auth, (user) => {
+      const container = document.getElementById('auth-button-container');
+
+      if (user) {
+        container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
+        currentUserProfile.username = user.displayName || user.email.split('@')[0];
+
+        document.getElementById('logout-btn').addEventListener('click', async (e) => {
+          e.preventDefault();
+          try {
+            await signOut(auth);
+            window.location.reload();
+          } catch (err) {
+            console.error('Logout error:', err);
+          }
+        });
+      } else {
+        container.innerHTML = '<a href="login/" class="nav-auth-btn">Sign In</a>';
+        currentUserProfile.username = "Guest_" + Math.floor(1000 + Math.random() * 9000);
+      }
+    });
+
+    // UI Navigation Utilities
     function switchStage(stage) {
       stageLobby.classList.remove('active');
       stageSearching.classList.remove('active');
@@ -407,25 +443,127 @@
       stage.classList.add('active');
     }
 
-    btnStart.addEventListener('click', () => {
+    // Matchmaking Logic Loop via Firestore (Optimized Reads/Writes)
+    async function startMatchmaking() {
+      if (inQueueProcess || !myPeerId) return; 
+      inQueueProcess = true;
+      btnStart.disabled = true;
+      btnNext.disabled = true;
+
       switchStage(stageSearching);
-      setTimeout(startMatchSimulation, 3000);
-    });
 
-    btnCancel.addEventListener('click', () => {
+      try {
+        // OPTIMIZATION: One snapshot read check for an open slot
+        const q = query(collection(db, "showdown_queue"), where("status", "==", "waiting"), limit(1));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const selectedDoc = querySnapshot.docs[0];
+          const docRef = doc(db, "showdown_queue", selectedDoc.id);
+
+          // Atomic Transaction block
+          const success = await runTransaction(db, async (transaction) => {
+            const sfDoc = await transaction.get(docRef);
+            if (sfDoc.exists() && sfDoc.data().status === "waiting") {
+              transaction.update(docRef, { 
+                status: "matched",
+                guestPeerId: myPeerId,
+                guestName: currentUserProfile.username
+              });
+              return sfDoc.data();
+            }
+            return null;
+          });
+
+          if (success) {
+            isHost = false;
+            opponentNameTag.innerText = success.hostName;
+            const conn = peer.connect(success.hostPeerId);
+            setupDataChannel(conn);
+            inQueueProcess = false;
+            return;
+          }
+        }
+
+        // Host Path setup
+        isHost = true;
+        const newRoom = await addDoc(collection(db, "showdown_queue"), {
+          status: "waiting",
+          hostPeerId: myPeerId,
+          hostName: currentUserProfile.username,
+          guestPeerId: "",
+          guestName: "",
+          createdAt: Date.now()
+        });
+        activeQueueDocRef = newRoom;
+
+        // Listen for standard updates on this specific room document reference path
+        queueListenerUnsubscribe = onSnapshot(doc(db, "showdown_queue", newRoom.id), (snapshot) => {
+          const data = snapshot.data();
+          if (data && data.status === "matched") {
+            opponentNameTag.innerText = data.guestName;
+            // Clean queue document from Firestore immediately to minimize storage read operations
+            deleteDoc(doc(db, "showdown_queue", newRoom.id));
+            if (queueListenerUnsubscribe) {
+              queueListenerUnsubscribe();
+              queueListenerUnsubscribe = null;
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error("Matchmaking Failure: ", err);
+        cancelSearch();
+      }
+      inQueueProcess = false;
+    }
+
+    async function cancelSearch() {
+      if (queueListenerUnsubscribe) {
+        queueListenerUnsubscribe();
+        queueListenerUnsubscribe = null;
+      }
+      if (isHost && activeQueueDocRef) {
+        try { 
+          await deleteDoc(activeQueueDocRef); 
+          activeQueueDocRef = null;
+        } catch(e){}
+      }
+      btnStart.disabled = false;
+      btnNext.disabled = false;
       switchStage(stageLobby);
-    });
+    }
 
-    btnNext.addEventListener('click', () => {
-      switchStage(stageSearching);
-      setTimeout(startMatchSimulation, 2500);
-    });
+    // Set Up WebRTC Communication Channels
+    function setupDataChannel(conn) {
+      currentConnection = conn;
 
-    btnExit.addEventListener('click', () => {
-      switchStage(stageLobby);
-    });
+      currentConnection.on('open', () => {
+        if (queueListenerUnsubscribe) {
+          queueListenerUnsubscribe();
+          queueListenerUnsubscribe = null;
+        }
+        btnStart.disabled = false;
+        btnNext.disabled = false;
+        runShowdownEngine();
+      });
 
-    function startMatchSimulation() {
+      currentConnection.on('data', (data) => {
+        if (data.type === 'sync_score') {
+          currentScore = data.score;
+          renderUIFrames();
+        }
+      });
+
+      currentConnection.on('close', () => {
+        clearLoops();
+        alert("Opponent left the match.");
+        switchStage(stageLobby);
+      });
+    }
+
+    // Main Engine Logic Execution Loop
+    function runShowdownEngine() {
       switchStage(stageMatch);
       
       countdownText.style.display = 'block';
@@ -436,8 +574,6 @@
       scaleNeedle.style.left = '50%';
       userSlot.classList.remove('winning');
       opponentSlot.classList.remove('winning');
-      
-      opponentNameTag.innerText = opponents[Math.floor(Math.random() * opponents.length)];
 
       let timeLeft = 15;
       countdownText.innerText = timeLeft + "s";
@@ -446,49 +582,60 @@
         timeLeft--;
         countdownText.innerText = timeLeft + "s";
         if (timeLeft <= 0) {
-          endMatch();
+          terminateShowdown();
         }
       }, 1000);
 
       matchInterval = setInterval(() => {
-        const flux = Math.floor(Math.random() * 25) - 12;
-        currentScore = Math.max(10, Math.min(90, currentScore + flux));
-        
-        scaleNeedle.style.left = currentScore + '%';
-
-        let userAura = Math.round((100 - currentScore) * 12.5);
-        let oppAura = Math.round(currentScore * 12.5);
-        userAuraText.innerText = `Aura: +${userAura}`;
-        oppAuraText.innerText = `Aura: +${oppAura}`;
-
-        if (currentScore < 48) {
-          userSlot.classList.add('winning');
-          opponentSlot.classList.remove('winning');
-        } else if (currentScore > 52) {
-          opponentSlot.classList.add('winning');
-          userSlot.classList.remove('winning');
-        } else {
-          userSlot.classList.remove('winning');
-          opponentSlot.classList.remove('winning');
+        if (isHost) {
+          const flux = Math.floor(Math.random() * 25) - 12;
+          currentScore = Math.max(10, Math.min(90, currentScore + flux));
+          
+          if (currentConnection && currentConnection.open) {
+            currentConnection.send({ type: 'sync_score', score: currentScore });
+          }
+          renderUIFrames();
         }
       }, 350);
     }
 
-    function endMatch() {
-      clearInterval(timerInterval);
-      clearInterval(matchInterval);
+    function renderUIFrames() {
+      let calculatedUserPosition = isHost ? currentScore : (100 - currentScore);
+      scaleNeedle.style.left = calculatedUserPosition + '%';
+
+      let userAura = Math.round((100 - calculatedUserPosition) * 12.5);
+      let oppAura = Math.round(calculatedUserPosition * 12.5);
+      userAuraText.innerText = `Aura: +${userAura}`;
+      oppAuraText.innerText = `Aura: +${oppAura}`;
+
+      if (calculatedUserPosition < 48) {
+        userSlot.classList.add('winning');
+        opponentSlot.classList.remove('winning');
+      } else if (calculatedUserPosition > 52) {
+        opponentSlot.classList.add('winning');
+        userSlot.classList.remove('winning');
+      } else {
+        userSlot.classList.remove('winning');
+        opponentSlot.classList.remove('winning');
+      }
+    }
+
+    function terminateShowdown() {
+      clearLoops();
 
       countdownText.style.display = 'none';
       resultText.style.display = 'block';
       btnNext.style.display = 'inline-block';
       btnExit.style.display = 'inline-block';
 
-      if (currentScore < 48) {
+      let finalPosition = isHost ? currentScore : (100 - currentScore);
+
+      if (finalPosition < 48) {
         resultText.innerText = "YOU WIN! UNMATCHED AURA";
         resultText.style.color = "var(--accent)";
         userSlot.classList.add('winning');
         opponentSlot.classList.remove('winning');
-      } else if (currentScore > 52) {
+      } else if (finalPosition > 52) {
         resultText.innerText = "DEFEAT. LACKING RIZZ";
         resultText.style.color = "#ef4444";
         opponentSlot.classList.add('winning');
@@ -500,6 +647,23 @@
         opponentSlot.classList.remove('winning');
       }
     }
+
+    function clearLoops() {
+      clearInterval(timerInterval);
+      clearInterval(matchInterval);
+    }
+
+    function cleanExit() {
+      if (currentConnection) currentConnection.close();
+      clearLoops();
+      switchStage(stageLobby);
+    }
+
+    // Event Trigger Binding
+    btnStart.addEventListener('click', startMatchmaking);
+    btnCancel.addEventListener('click', cancelSearch);
+    btnNext.addEventListener('click', startMatchmaking);
+    btnExit.addEventListener('click', cleanExit);
   </script>
 
   <script type="module">
@@ -520,15 +684,10 @@
 
     onAuthStateChanged(auth, (user) => {
       const container = document.getElementById('auth-button-container');
-      const heroSignInBtn = document.getElementById('hero-signin-btn');
 
       if (user) {
         container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
         
-        if (heroSignInBtn) {
-          heroSignInBtn.style.display = 'none';
-        }
-
         document.getElementById('logout-btn').addEventListener('click', async (e) => {
           e.preventDefault();
           try {
@@ -540,10 +699,6 @@
         });
       } else {
         container.innerHTML = '<a href="login/" class="nav-auth-btn">Sign In</a>';
-        
-        if (heroSignInBtn) {
-          heroSignInBtn.style.display = '';
-        }
       }
     });
   </script>
