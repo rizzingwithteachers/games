@@ -330,6 +330,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, query, where, limit, doc, getDoc, runTransaction, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { AuraEngine } from "./auraEngine.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
@@ -655,8 +656,8 @@
 
       matchInterval = setInterval(() => {
         if (isHost) {
-          const flux = Math.floor(Math.random() * 25) - 12;
-          currentScore = Math.max(10, Math.min(90, currentScore + flux));
+          // Uses modular engine file to calculate the tug-of-war shifts
+          currentScore = AuraEngine.calculateMatchFlux(currentScore);
           
           if (currentConnection && currentConnection.open) {
             currentConnection.send({ type: 'sync_score', score: currentScore });
