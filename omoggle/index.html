@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carson Games</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Carson Games - Omoggle</title>
+  <link rel="stylesheet" href="../style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -63,6 +63,16 @@
       font-size: 0.95rem;
     }
 
+    /* On-Screen Status Alert Box */
+    .status-display-msg {
+      color: #ef4444;
+      margin-top: 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      min-height: 1.5rem;
+      transition: color 0.2s ease;
+    }
+
     .radar-spinner {
       width: 70px;
       height: 70px;
@@ -102,6 +112,17 @@
       border-color: var(--accent);
     }
 
+    /* Video stream layout settings */
+    .player-slot video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: #000;
+    }
+
     .player-label {
       position: absolute;
       top: 12px;
@@ -119,40 +140,6 @@
     .player-label.opponent {
       left: auto;
       right: 12px;
-    }
-
-    .avatar-mock {
-      width: 90px;
-      height: 90px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.02);
-      border: 2px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    .avatar-text {
-      font-family: var(--font-display);
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.5px;
-    }
-
-    .avatar-scanner-line {
-      position: absolute;
-      width: 100%;
-      height: 2px;
-      background: var(--accent);
-      top: 0;
-      animation: scan 2s linear infinite;
-    }
-
-    @keyframes scan {
-      0%, 100% { top: 0%; opacity: 0.3; }
-      50% { top: 100%; opacity: 1; }
     }
 
     .live-metrics {
@@ -256,11 +243,6 @@
       .player-slot {
         aspect-ratio: 4/3;
       }
-      .avatar-mock {
-        width: 80px;
-        height: 80px;
-      }
-      /* Ensure touch targets are easy to tap on iPad screen */
       .btn-primary {
         padding: 14px 28px;
         font-size: 0.95rem;
@@ -291,9 +273,10 @@
     <div class="showdown-card">
 
       <div id="stage-lobby" class="view-stage active">
-        <h2 class="showdown-title">AURA SHOWDOWN</h2>
-        <p class="showdown-desc">Go head-to-head against a random player. Our live AI metrics judge your presentation, posture, and confidence. Highest overall score wins after 15 seconds.</p>
+        <h2 class="showdown-title">OMOGGLE</h2>
+        <p class="showdown-desc">COMPETE AGAINST OTHER PEOPLE TO SEE WHO HAS MORE AURA AFTER 15 SECONDS OF LIVE VIDEO</p>
         <button id="btn-start" class="btn-primary">Find a Competitor</button>
+        <p id="lobby-msg" class="status-display-msg"></p>
       </div>
 
       <div id="stage-searching" class="view-stage">
@@ -309,27 +292,21 @@
         <div class="battleground">
           <div id="slot-user" class="player-slot">
             <span class="player-label">You</span>
-            <div class="avatar-mock">
-              <div class="avatar-scanner-line"></div>
-              <span class="avatar-text">LIVE FEED</span>
-            </div>
-            <div id="user-aura-val" class="live-metrics">Aura: +100</div>
+            <video id="user-video" autoplay playsinline muted></video>
+            <div id="user-aura-val" class="live-metrics" style="z-index: 2; position: relative; margin-top: auto; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px;">Aura: +500</div>
           </div>
 
           <div id="slot-opponent" class="player-slot">
-            <span class="player-label opponent" id="opponent-name">Stranger</span>
-            <div class="avatar-mock">
-              <div class="avatar-scanner-line" style="animation-delay: 0.5s;"></div>
-              <span class="avatar-text">REMOTE</span>
-            </div>
-            <div id="opp-aura-val" class="live-metrics">Aura: +100</div>
+            <span class="player-label opponent" id="opponent-name">Unknown</span>
+            <video id="opponent-video" autoplay playsinline></video>
+            <div id="opp-aura-val" class="live-metrics" style="z-index: 2; position: relative; margin-top: auto; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px;">Aura: +500</div>
           </div>
         </div>
 
         <div class="scale-wrapper">
           <div class="scale-labels">
-            <span>Your Dominance</span>
-            <span>Opponent Dominance</span>
+            <span>Your Aura</span>
+            <span>Opponent Aura</span>
           </div>
           <div class="scale-track">
             <div class="scale-center-notch"></div>
@@ -351,7 +328,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, query, where, limit, doc, runTransaction, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, limit, doc, getDoc, runTransaction, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
@@ -383,6 +360,10 @@
     const userAuraText = document.getElementById('user-aura-val');
     const oppAuraText = document.getElementById('opp-aura-val');
     const resultText = document.getElementById('result-text');
+    const lobbyMsg = document.getElementById('lobby-msg');
+
+    const userVideo = document.getElementById('user-video');
+    const opponentVideo = document.getElementById('opponent-video');
 
     // WebRTC Application States
     let peer = null;
@@ -391,12 +372,13 @@
     let isHost = false;
     let activeQueueDocRef = null;
     let queueListenerUnsubscribe = null;
-    let inQueueProcess = false; // Prevents button spam database calls
+    let inQueueProcess = false;
+    let myMediaStream = null;
 
     let matchInterval;
     let timerInterval;
     let currentScore = 50;
-    let currentUserProfile = { username: "Guest" };
+    let currentUserProfile = { uid: null, username: "Unknown" };
 
     // Initialize PeerJS Session
     function initPeer() {
@@ -405,37 +387,72 @@
         myPeerId = id;
       });
 
+      // Handle structural incoming connection call if picked up as a Host
       peer.on('connection', (conn) => {
         isHost = true;
         setupDataChannel(conn);
       });
+
+      // Stream Listener: Handle incoming WebRTC video call rings from opponents
+      peer.on('call', (incomingCall) => {
+        if (myMediaStream) {
+          incomingCall.answer(myMediaStream);
+          incomingCall.on('stream', (remoteStream) => {
+            opponentVideo.srcObject = remoteStream;
+          });
+        }
+      });
     }
     initPeer();
 
-    // Track Authentication States
-    onAuthStateChanged(auth, (user) => {
-      const container = document.getElementById('auth-button-container');
-
-      if (user) {
-        container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-        currentUserProfile.username = user.displayName || user.email.split('@')[0];
-
-        document.getElementById('logout-btn').addEventListener('click', async (e) => {
-          e.preventDefault();
-          try {
-            await signOut(auth);
-            window.location.reload();
-          } catch (err) {
-            console.error('Logout error:', err);
-          }
-        });
-      } else {
-        container.innerHTML = '<a href="login/" class="nav-auth-btn">Sign In</a>';
-        currentUserProfile.username = "Guest_" + Math.floor(1000 + Math.random() * 9000);
+    // Track Authentication States & Handle Redirects
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.replace("login/");
+        return;
       }
+
+      const container = document.getElementById('auth-button-container');
+      container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
+      
+      currentUserProfile.uid = user.uid;
+      currentUserProfile.username = "Unknown";
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().username) {
+          currentUserProfile.username = userDoc.data().username;
+        } else {
+          currentUserProfile.username = user.email.split('@')[0] || "Unknown";
+        }
+      } catch (e) {
+        console.error("Error loading user profile information:", e);
+      }
+
+      document.getElementById('logout-btn').addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+          await signOut(auth);
+          window.location.reload();
+        } catch (err) {
+          console.error('Logout error:', err);
+        }
+      });
     });
 
-    // UI Navigation Utilities
+    async function resolveUsername(uid) {
+      if (!uid) return "Unknown";
+      try {
+        const userSnap = await getDoc(doc(db, "users", uid));
+        if (userSnap.exists() && userSnap.data().username) {
+          return userSnap.data().username;
+        }
+      } catch(e) {
+        console.error("Error fetching remote username:", e);
+      }
+      return "Unknown";
+    }
+
     function switchStage(stage) {
       stageLobby.classList.remove('active');
       stageSearching.classList.remove('active');
@@ -443,32 +460,73 @@
       stage.classList.add('active');
     }
 
-    // Matchmaking Logic Loop via Firestore (Optimized Reads/Writes)
+    // Matchmaking Logic Loop via Firestore
     async function startMatchmaking() {
-      if (inQueueProcess || !myPeerId) return; 
+      if (inQueueProcess || !myPeerId || !currentUserProfile.uid) return; 
       inQueueProcess = true;
       btnStart.disabled = true;
       btnNext.disabled = true;
+      lobbyMsg.innerText = ""; 
 
-      switchStage(stageSearching);
+      // 1. WebRTC Local Camera Activation Pre-Check
+      if (!myMediaStream) {
+        try {
+          myMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          userVideo.srcObject = myMediaStream;
+        } catch (cameraErr) {
+          lobbyMsg.style.color = "#ef4444";
+          lobbyMsg.innerText = "Camera access required to join the queue.";
+          btnStart.disabled = false;
+          btnNext.disabled = false;
+          inQueueProcess = false;
+          return;
+        }
+      }
 
+      // 2. Duplicate Hosting Prevention Check
       try {
-        // OPTIMIZATION: One snapshot read check for an open slot
-        const q = query(collection(db, "showdown_queue"), where("status", "==", "waiting"), limit(1));
+        const selfCheckQuery = query(
+          collection(db, "showdown_queue"), 
+          where("hostUid", "==", currentUserProfile.uid), 
+          where("status", "==", "waiting")
+        );
+        const selfCheckSnapshot = await getDocs(selfCheckQuery);
+        
+        if (!selfCheckSnapshot.empty) {
+          lobbyMsg.style.color = "var(--text-muted)";
+          lobbyMsg.innerText = "You are already waiting for a match.";
+          btnStart.disabled = false;
+          btnNext.disabled = false;
+          switchStage(stageLobby);
+          inQueueProcess = false;
+          return;
+        }
+
+        switchStage(stageSearching);
+
+        const q = query(collection(db, "showdown_queue"), where("status", "==", "waiting"), limit(5));
         const querySnapshot = await getDocs(q);
 
+        let selectedDoc = null;
         if (!querySnapshot.empty) {
-          const selectedDoc = querySnapshot.docs[0];
+          for (let d of querySnapshot.docs) {
+            if (d.data().hostUid !== currentUserProfile.uid) {
+              selectedDoc = d;
+              break;
+            }
+          }
+        }
+
+        if (selectedDoc) {
           const docRef = doc(db, "showdown_queue", selectedDoc.id);
 
-          // Atomic Transaction block
           const success = await runTransaction(db, async (transaction) => {
             const sfDoc = await transaction.get(docRef);
             if (sfDoc.exists() && sfDoc.data().status === "waiting") {
               transaction.update(docRef, { 
                 status: "matched",
                 guestPeerId: myPeerId,
-                guestName: currentUserProfile.username
+                guestUid: currentUserProfile.uid
               });
               return sfDoc.data();
             }
@@ -477,7 +535,7 @@
 
           if (success) {
             isHost = false;
-            opponentNameTag.innerText = success.hostName;
+            opponentNameTag.innerText = await resolveUsername(success.hostUid);
             const conn = peer.connect(success.hostPeerId);
             setupDataChannel(conn);
             inQueueProcess = false;
@@ -485,24 +543,21 @@
           }
         }
 
-        // Host Path setup
         isHost = true;
         const newRoom = await addDoc(collection(db, "showdown_queue"), {
           status: "waiting",
           hostPeerId: myPeerId,
-          hostName: currentUserProfile.username,
+          hostUid: currentUserProfile.uid,
           guestPeerId: "",
-          guestName: "",
+          guestUid: "",
           createdAt: Date.now()
         });
         activeQueueDocRef = newRoom;
 
-        // Listen for standard updates on this specific room document reference path
-        queueListenerUnsubscribe = onSnapshot(doc(db, "showdown_queue", newRoom.id), (snapshot) => {
+        queueListenerUnsubscribe = onSnapshot(doc(db, "showdown_queue", newRoom.id), async (snapshot) => {
           const data = snapshot.data();
           if (data && data.status === "matched") {
-            opponentNameTag.innerText = data.guestName;
-            // Clean queue document from Firestore immediately to minimize storage read operations
+            opponentNameTag.innerText = await resolveUsername(data.guestUid);
             deleteDoc(doc(db, "showdown_queue", newRoom.id));
             if (queueListenerUnsubscribe) {
               queueListenerUnsubscribe();
@@ -545,6 +600,15 @@
         }
         btnStart.disabled = false;
         btnNext.disabled = false;
+
+        // Guest Media Execution Pipeline Call
+        if (!isHost && myMediaStream) {
+          const mediaCall = peer.call(conn.peer, myMediaStream);
+          mediaCall.on('stream', (remoteStream) => {
+            opponentVideo.srcObject = remoteStream;
+          });
+        }
+
         runShowdownEngine();
       });
 
@@ -557,7 +621,9 @@
 
       currentConnection.on('close', () => {
         clearLoops();
-        alert("Opponent left the match.");
+        opponentVideo.srcObject = null; 
+        lobbyMsg.style.color = "var(--text-muted)";
+        lobbyMsg.innerText = "Opponent left the match.";
         switchStage(stageLobby);
       });
     }
@@ -603,8 +669,8 @@
       let calculatedUserPosition = isHost ? currentScore : (100 - currentScore);
       scaleNeedle.style.left = calculatedUserPosition + '%';
 
-      let userAura = Math.round((100 - calculatedUserPosition) * 12.5);
-      let oppAura = Math.round(calculatedUserPosition * 12.5);
+      let userAura = Math.round((100 - calculatedUserPosition) * 10);
+      let oppAura = Math.round(calculatedUserPosition * 10);
       userAuraText.innerText = `Aura: +${userAura}`;
       oppAuraText.innerText = `Aura: +${oppAura}`;
 
@@ -655,6 +721,7 @@
 
     function cleanExit() {
       if (currentConnection) currentConnection.close();
+      opponentVideo.srcObject = null;
       clearLoops();
       switchStage(stageLobby);
     }
@@ -665,43 +732,5 @@
     btnNext.addEventListener('click', startMatchmaking);
     btnExit.addEventListener('click', cleanExit);
   </script>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
-      authDomain: "carson-games.firebaseapp.com",
-      projectId: "carson-games",
-      storageBucket: "carson-games.firebasestorage.app",
-      messagingSenderId: "856520252558",
-      appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    onAuthStateChanged(auth, (user) => {
-      const container = document.getElementById('auth-button-container');
-
-      if (user) {
-        container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-        
-        document.getElementById('logout-btn').addEventListener('click', async (e) => {
-          e.preventDefault();
-          try {
-            await signOut(auth);
-            window.location.reload();
-          } catch (err) {
-            console.error('Logout error:', err);
-          }
-        });
-      } else {
-        container.innerHTML = '<a href="login/" class="nav-auth-btn">Sign In</a>';
-      }
-    });
-  </script>
-
 </body>
 </html>
