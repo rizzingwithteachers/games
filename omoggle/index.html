@@ -332,6 +332,46 @@
     import { getFirestore, collection, addDoc, getDocs, query, where, limit, doc, getDoc, runTransaction, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
     import { AuraEngine } from "./auraEngine.js";
 
+    // ── EDIT YOUR RANDOM RESPONSES HERE ───────────────────────────
+    const OUTCOME_PHRASES = {
+      wonByATon: [
+        "INSANE AURA! YOU ABSOLUTELY CLAPPED THEM!",
+        "INFINITE RIZZ! THEY DIDN'T STAND A CHANCE",
+        "EXTREME AURA! THEY'RE COOKED"
+      ],
+      won: [
+        "YOU WIN! NO CAP",
+        "W RIZZ!",
+        "AURA FARM"
+      ],
+      barelyWon: [
+        "BARELY WON! JUST EDGING OUT THE VICTORY",
+        "EXTREMELY CLOSE! YOUR AURA WAS BARELY ENOUGH",
+        "TOO CLOSE! YOU NEARLY GOT OBLITERATED"
+      ],
+      tie: [
+        "IT'S A TIE!",
+        "IT'S A TIE!",
+        "IT'S A TIE!"
+      ],
+      barelyLost: [
+        "BARELY LOST! JUST BARELY LESS AURA",
+        "SO CLOSE! GET BETTER",
+        "BARELY LOST! YOU WERE SO CLOSE"
+      ],
+      lost: [
+        "YOU LOST! GET BETTER",
+        "YOU COULDN'T RIZZ. ):",
+        "L AURA. TIME TO GET BETTER"
+      ],
+      lostByATon: [
+        "YOU LOST!!! WATCH SOME YT TUTORIALS",
+        "NEGATIVE AURA! THEY ABSOLUTELY CLAPPED YOU",
+        "GET BETTER UNC"
+      ]
+    };
+    // ─────────────────────────────────────────────────────────────
+
     const firebaseConfig = {
       apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
       authDomain: "carson-games.firebaseapp.com",
@@ -389,13 +429,11 @@
         myPeerId = id;
       });
 
-      // Handle structural incoming connection call if picked up as a Host
       peer.on('connection', (conn) => {
         isHost = true;
         setupDataChannel(conn);
       });
 
-      // Stream Listener: Handle incoming WebRTC video call rings from opponents
       peer.on('call', (incomingCall) => {
         if (myMediaStream) {
           incomingCall.answer(myMediaStream);
@@ -470,7 +508,6 @@
       btnNext.disabled = true;
       lobbyMsg.innerText = ""; 
 
-      // 1. WebRTC Local Camera Activation Pre-Check
       if (!myMediaStream) {
         try {
           myMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -485,7 +522,6 @@
         }
       }
 
-      // 2. Duplicate Hosting Prevention Check
       try {
         const selfCheckQuery = query(
           collection(db, "showdown_queue"), 
@@ -603,7 +639,6 @@
         btnStart.disabled = false;
         btnNext.disabled = false;
 
-        // Guest Media Execution Pipeline Call
         if (!isHost && myMediaStream) {
           const mediaCall = peer.call(conn.peer, myMediaStream);
           mediaCall.on('stream', (remoteStream) => {
@@ -656,9 +691,7 @@
 
       matchInterval = setInterval(() => {
         if (isHost) {
-          // Uses modular engine file to calculate the tug-of-war shifts
           currentScore = AuraEngine.calculateMatchFlux(currentScore);
-          
           if (currentConnection && currentConnection.open) {
             currentConnection.send({ type: 'sync_score', score: currentScore });
           }
@@ -688,6 +721,7 @@
       }
     }
 
+    // Overhauled Terminal System with Sub-Category Metrics
     function terminateShowdown() {
       clearLoops();
 
@@ -697,23 +731,58 @@
       btnExit.style.display = 'inline-block';
 
       let finalPosition = isHost ? currentScore : (100 - currentScore);
+      let targetPhrases = [];
+      let calculatedColor = "var(--text-muted)";
 
-      if (finalPosition < 48) {
-        resultText.innerText = "YOU WIN! UNMATCHED AURA";
-        resultText.style.color = "var(--accent)";
+      // Tier Bracket Evaluation System 
+      if (finalPosition < 20) {
+        // Won by a ton
+        targetPhrases = OUTCOME_PHRASES.wonByATon;
+        calculatedColor = "var(--accent)";
         userSlot.classList.add('winning');
         opponentSlot.classList.remove('winning');
-      } else if (finalPosition > 52) {
-        resultText.innerText = "DEFEAT. LACKING RIZZ";
-        resultText.style.color = "#ef4444";
+      } else if (finalPosition >= 20 && finalPosition < 40) {
+        // Normal Win
+        targetPhrases = OUTCOME_PHRASES.won;
+        calculatedColor = "var(--accent)";
+        userSlot.classList.add('winning');
+        opponentSlot.classList.remove('winning');
+      } else if (finalPosition >= 40 && finalPosition < 48) {
+        // Barely Won
+        targetPhrases = OUTCOME_PHRASES.barelyWon;
+        calculatedColor = "var(--accent)";
+        userSlot.classList.add('winning');
+        opponentSlot.classList.remove('winning');
+      } else if (finalPosition >= 48 && finalPosition <= 52) {
+        // Tie Game
+        targetPhrases = OUTCOME_PHRASES.tie;
+        calculatedColor = "var(--text-muted)";
+        userSlot.classList.remove('winning');
+        opponentSlot.classList.remove('winning');
+      } else if (finalPosition > 52 && finalPosition <= 60) {
+        // Barely Lost
+        targetPhrases = OUTCOME_PHRASES.barelyLost;
+        calculatedColor = "#ef4444";
+        opponentSlot.classList.add('winning');
+        userSlot.classList.remove('winning');
+      } else if (finalPosition > 60 && finalPosition <= 80) {
+        // Normal Loss
+        targetPhrases = OUTCOME_PHRASES.lost;
+        calculatedColor = "#ef4444";
         opponentSlot.classList.add('winning');
         userSlot.classList.remove('winning');
       } else {
-        resultText.innerText = "IT'S A TIE! BOTH SIGMAS";
-        resultText.style.color = "var(--text-muted)";
+        // Lost by a ton
+        targetPhrases = OUTCOME_PHRASES.lostByATon;
+        calculatedColor = "#ef4444";
+        opponentSlot.classList.add('winning');
         userSlot.classList.remove('winning');
-        opponentSlot.classList.remove('winning');
       }
+
+      // Roll and assign the text string randomly from chosen subset array
+      const rolledIndex = Math.floor(Math.random() * targetPhrases.length);
+      resultText.innerText = targetPhrases[rolledIndex];
+      resultText.style.color = calculatedColor;
     }
 
     function clearLoops() {
@@ -728,7 +797,6 @@
       switchStage(stageLobby);
     }
 
-    // Event Trigger Binding
     btnStart.addEventListener('click', startMatchmaking);
     btnCancel.addEventListener('click', cancelSearch);
     btnNext.addEventListener('click', startMatchmaking);
