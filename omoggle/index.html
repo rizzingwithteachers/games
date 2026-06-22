@@ -7,248 +7,37 @@
   <link rel="stylesheet" href="../style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
-  <script src="peerjs.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
   <style>
     /* ── SHOWDOWN STYLES ────────────────────────────────── */
-    .showdown-container {
-      max-width: 1000px;
-      margin: 2.5rem auto 4rem;
-      padding: 0 2rem;
-      width: 100%;
-      box-sizing: border-box;
-    }
+    .showdown-container { max-width: 1000px; margin: 2.5rem auto 4rem; padding: 0 2rem; width: 100%; box-sizing: border-box; }
+    .showdown-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 3rem 2rem; text-align: center; position: relative; overflow: hidden; min-height: 460px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    .view-stage { width: 100%; display: none; flex-direction: column; align-items: center; }
+    .view-stage.active { display: flex; }
+    .showdown-title { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; background: linear-gradient(135deg, #fff 30%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .showdown-desc { color: var(--text-muted); max-width: 500px; margin-bottom: 2.5rem; line-height: 1.6; font-size: 0.95rem; }
+    .status-display-msg { color: #ef4444; margin-top: 1.5rem; font-size: 0.95rem; font-weight: 600; min-height: 1.5rem; }
+    .radar-spinner { width: 70px; height: 70px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 2rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .showdown-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-l);
-      padding: 3rem 2rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      min-height: 460px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
+    .battleground { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; width: 100%; margin-bottom: 2.5rem; }
+    .player-slot { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-m); aspect-ratio: 4/3; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+    .player-slot.winning { border-color: var(--accent); }
+    .player-slot video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 1; background: #000; }
+    .player-label { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.6); padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; z-index: 2; }
+    .player-label.opponent { left: auto; right: 12px; }
+    .live-metrics { margin-top: auto; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--text-muted); z-index: 2; position: relative; }
+    .winning .live-metrics { color: var(--accent); }
 
-    .view-stage {
-      width: 100%;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .view-stage.active {
-      display: flex;
-    }
-
-    .showdown-title {
-      font-family: var(--font-display);
-      font-size: 2.2rem;
-      font-weight: 800;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .showdown-desc {
-      color: var(--text-muted);
-      max-width: 500px;
-      margin-bottom: 2.5rem;
-      line-height: 1.6;
-      font-size: 0.95rem;
-    }
-
-    /* On-Screen Status Alert Box */
-    .status-display-msg {
-      color: #ef4444;
-      margin-top: 1.5rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-      min-height: 1.5rem;
-      transition: color 0.2s ease;
-    }
-
-    .radar-spinner {
-      width: 70px;
-      height: 70px;
-      border: 4px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 2rem;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .battleground {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      width: 100%;
-      margin-bottom: 2.5rem;
-    }
-
-    .player-slot {
-      background: var(--surface);
-      border: 2px solid var(--border);
-      border-radius: var(--radius-m);
-      aspect-ratio: 4/3;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .player-slot.winning {
-      border-color: var(--accent);
-    }
-
-    /* Video stream layout settings */
-    .player-slot video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      background: #000;
-    }
-
-    .player-label {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      z-index: 2;
-    }
-
-    .player-label.opponent {
-      left: auto;
-      right: 12px;
-    }
-
-    .live-metrics {
-      margin-top: 1.2rem;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 1.1rem;
-      color: var(--text-muted);
-    }
-
-    .winning .live-metrics {
-      color: var(--accent);
-    }
-
-    .timer-banner {
-      font-family: var(--font-display);
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 1.5rem;
-    }
-
-    .scale-wrapper {
-      width: 80%;
-      max-width: 500px;
-      margin: 0 auto;
-      position: relative;
-    }
-
-    .scale-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-bottom: 0.6rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .scale-track {
-      height: 10px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      position: relative;
-      width: 100%;
-    }
-
-    .scale-center-notch {
-      position: absolute;
-      left: 50%;
-      top: -4px;
-      width: 2px;
-      height: 16px;
-      background: var(--text-muted);
-      transform: translateX(-50%);
-    }
-
-    .scale-needle {
-      position: absolute;
-      top: -6px;
-      width: 20px;
-      height: 20px;
-      background: var(--accent);
-      border: 3px solid #fff;
-      border-radius: 50%;
-      transform: translateX(-50%);
-      transition: left 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .result-announcement {
-      font-family: var(--font-display);
-      font-size: 2.2rem;
-      font-weight: 800;
-      margin-bottom: 1.5rem;
-      display: none;
-    }
-
-    .action-row {
-      margin-top: 2rem;
-      display: flex;
-      gap: 12px;
-    }
-
-    /* ── IPAD 9TH GENERATION OPTIMIZATIONS ───────────────── */
-    @media only screen and (min-width: 768px) and (max-width: 1080px) {
-      .showdown-container {
-        max-width: 100%;
-        margin: 1.5rem auto 3rem;
-        padding: 0 1.5rem;
-      }
-      .showdown-card {
-        padding: 2.5rem 1.5rem;
-        min-height: 420px;
-      }
-      .battleground {
-        gap: 1.25rem;
-        margin-bottom: 2rem;
-      }
-      .player-slot {
-        aspect-ratio: 4/3;
-      }
-      .btn-primary {
-        padding: 14px 28px;
-        font-size: 0.95rem;
-        min-height: 48px;
-      }
-    }
+    .timer-banner { font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; color: #fff; margin-bottom: 1.5rem; }
+    .scale-wrapper { width: 80%; max-width: 500px; margin: 0 auto; position: relative; }
+    .scale-labels { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.6rem; text-transform: uppercase; }
+    .scale-track { height: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; position: relative; width: 100%; }
+    .scale-center-notch { position: absolute; left: 50%; top: -4px; width: 2px; height: 16px; background: var(--text-muted); transform: translateX(-50%); }
+    .scale-needle { position: absolute; top: -6px; width: 20px; height: 20px; background: var(--accent); border: 3px solid #fff; border-radius: 50%; transform: translateX(-50%); transition: left 0.25s ease; }
+    .result-announcement { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; margin-bottom: 1.5rem; display: none; }
+    .action-row { margin-top: 2rem; display: flex; gap: 12px; }
   </style>
 </head>
 <body>
@@ -294,13 +83,13 @@
           <div id="slot-user" class="player-slot">
             <span class="player-label">You</span>
             <video id="user-video" autoplay playsinline muted></video>
-            <div id="user-aura-val" class="live-metrics" style="z-index: 2; position: relative; margin-top: auto; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px;">Aura: +500</div>
+            <div id="user-aura-val" class="live-metrics">Aura: +500</div>
           </div>
 
           <div id="slot-opponent" class="player-slot">
             <span class="player-label opponent" id="opponent-name">Unknown</span>
             <video id="opponent-video" autoplay playsinline></video>
-            <div id="opp-aura-val" class="live-metrics" style="z-index: 2; position: relative; margin-top: auto; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px;">Aura: +500</div>
+            <div id="opp-aura-val" class="live-metrics">Aura: +500</div>
           </div>
         </div>
 
@@ -332,45 +121,15 @@
     import { getFirestore, collection, addDoc, getDocs, query, where, limit, doc, getDoc, runTransaction, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
     import { AuraEngine } from "./auraEngine.js";
 
-    // ── EDIT YOUR RANDOM RESPONSES HERE ───────────────────────────
     const OUTCOME_PHRASES = {
-      wonByATon: [
-        "INSANE AURA! YOU ABSOLUTELY CLAPPED THEM!",
-        "INFINITE RIZZ! THEY DIDN'T STAND A CHANCE",
-        "EXTREME AURA! THEY'RE COOKED"
-      ],
-      won: [
-        "YOU WIN! NO CAP",
-        "W RIZZ!",
-        "AURA FARM"
-      ],
-      barelyWon: [
-        "BARELY WON! JUST EDGING OUT THE VICTORY",
-        "EXTREMELY CLOSE! YOUR AURA WAS BARELY ENOUGH",
-        "TOO CLOSE! YOU NEARLY GOT OBLITERATED"
-      ],
-      tie: [
-        "IT'S A TIE!",
-        "IT'S A TIE!",
-        "IT'S A TIE!"
-      ],
-      barelyLost: [
-        "BARELY LOST! JUST BARELY LESS AURA",
-        "SO CLOSE! GET BETTER",
-        "BARELY LOST! YOU WERE SO CLOSE"
-      ],
-      lost: [
-        "YOU LOST! GET BETTER",
-        "YOU COULDN'T RIZZ. ):",
-        "L AURA. TIME TO GET BETTER"
-      ],
-      lostByATon: [
-        "YOU LOST!!! WATCH SOME YT TUTORIALS",
-        "NEGATIVE AURA! THEY ABSOLUTELY CLAPPED YOU",
-        "GET BETTER UNC"
-      ]
+      wonByATon: ["INSANE AURA! YOU ABSOLUTELY CLAPPED THEM!", "INFINITE RIZZ! THEY DIDN'T STAND A CHANCE", "EXTREME AURA! THEY'RE COOKED"],
+      won: ["YOU WIN! NO CAP", "W RIZZ!", "AURA FARM"],
+      barelyWon: ["BARELY WON! JUST EDGING OUT THE VICTORY", "EXTREMELY CLOSE! YOUR AURA WAS BARELY ENOUGH"],
+      tie: ["IT'S A TIE!"],
+      barelyLost: ["BARELY LOST! JUST BARELY LESS AURA", "SO CLOSE! GET BETTER"],
+      lost: ["YOU LOST! GET BETTER", "L AURA. TIME TO GET BETTER"],
+      lostByATon: ["YOU LOST!!! WATCH SOME YT TUTORIALS", "NEGATIVE AURA! CLAPPED", "GET BETTER UNC"]
     };
-    // ─────────────────────────────────────────────────────────────
 
     const firebaseConfig = {
       apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
@@ -381,12 +140,11 @@
       appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
     };
 
-    // Initialize Systems
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // DOM References
+    // DOM Bindings
     const stageLobby = document.getElementById('stage-lobby');
     const stageSearching = document.getElementById('stage-searching');
     const stageMatch = document.getElementById('stage-match');
@@ -403,11 +161,14 @@
     const oppAuraText = document.getElementById('opp-aura-val');
     const resultText = document.getElementById('result-text');
     const lobbyMsg = document.getElementById('lobby-msg');
-
     const userVideo = document.getElementById('user-video');
     const opponentVideo = document.getElementById('opponent-video');
 
-    // WebRTC Application States
+    // Parse Deep Link Challenge Identifiers
+    const urlParams = new URLSearchParams(window.location.search);
+    const privateRoomId = urlParams.get('room');
+    const privateRole = urlParams.get('role');
+
     let peer = null;
     let myPeerId = null;
     let currentConnection = null;
@@ -422,11 +183,19 @@
     let currentScore = 50;
     let currentUserProfile = { uid: null, username: "Unknown" };
 
-    // Initialize PeerJS Session
-    function initPeer() {
-      peer = new Peer();
+    async function initPeerSession() {
+      // Direct assignment bypass for restricted challenges
+      if (privateRoomId && privateRole === "host") {
+        myPeerId = privateRoomId;
+        isHost = true;
+        peer = new Peer(privateRoomId);
+      } else {
+        peer = new Peer();
+      }
+
       peer.on('open', (id) => {
-        myPeerId = id;
+        if (!privateRoomId) myPeerId = id;
+        if (privateRoomId && privateRole === "guest") executePrivateGuestHandshake();
       });
 
       peer.on('connection', (conn) => {
@@ -437,134 +206,69 @@
       peer.on('call', (incomingCall) => {
         if (myMediaStream) {
           incomingCall.answer(myMediaStream);
-          incomingCall.on('stream', (remoteStream) => {
-            opponentVideo.srcObject = remoteStream;
-          });
+          incomingCall.on('stream', (remoteStream) => { opponentVideo.srcObject = remoteStream; });
         }
       });
     }
-    initPeer();
 
-    // Track Authentication States & Handle Redirects
     onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.replace("../login/");
-        return;
-      }
+      if (!user) { window.location.replace("../login/"); return; }
+      
+      currentUserProfile.uid = user.uid;
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      currentUserProfile.username = userSnap.exists() ? userSnap.data().username : user.email.split('@')[0];
 
       const container = document.getElementById('auth-button-container');
       container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-      
-      currentUserProfile.uid = user.uid;
-      currentUserProfile.username = "Unknown";
+      document.getElementById('logout-btn').onclick = async () => { await signOut(auth); window.location.reload(); };
 
-      try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists() && userDoc.data().username) {
-          currentUserProfile.username = userDoc.data().username;
-        } else {
-          currentUserProfile.username = user.email.split('@')[0] || "Unknown";
-        }
-      } catch (e) {
-        console.error("Error loading user profile information:", e);
-      }
-
-      document.getElementById('logout-btn').addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-          await signOut(auth);
-          window.location.reload();
-        } catch (err) {
-          console.error('Logout error:', err);
-        }
-      });
+      await initPeerSession();
     });
 
-    async function resolveUsername(uid) {
-      if (!uid) return "Unknown";
+    async function executePrivateGuestHandshake() {
+      switchStage(stageMatch);
+      opponentNameTag.innerText = "Challenger";
+      
       try {
-        const userSnap = await getDoc(doc(db, "users", uid));
-        if (userSnap.exists() && userSnap.data().username) {
-          return userSnap.data().username;
-        }
-      } catch(e) {
-        console.error("Error fetching remote username:", e);
-      }
-      return "Unknown";
+        myMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        userVideo.srcObject = myMediaStream;
+      } catch (e) { alert("Camera acquisition required."); return; }
+
+      isHost = false;
+      const conn = peer.connect(privateRoomId);
+      setupDataChannel(conn);
     }
 
     function switchStage(stage) {
-      stageLobby.classList.remove('active');
-      stageSearching.classList.remove('active');
-      stageMatch.classList.remove('active');
+      stageLobby.classList.remove('active'); stageSearching.classList.remove('active'); stageMatch.classList.remove('active');
       stage.classList.add('active');
     }
 
-    // Matchmaking Logic Loop via Firestore
     async function startMatchmaking() {
-      if (inQueueProcess || !myPeerId || !currentUserProfile.uid) return; 
+      if (privateRoomId) return; // Completely hard-block queue access if in a private challenge session
+      if (inQueueProcess || !myPeerId) return; 
       inQueueProcess = true;
-      btnStart.disabled = true;
-      btnNext.disabled = true;
-      lobbyMsg.innerText = ""; 
 
       if (!myMediaStream) {
         try {
           myMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           userVideo.srcObject = myMediaStream;
-        } catch (cameraErr) {
-          lobbyMsg.style.color = "#ef4444";
-          lobbyMsg.innerText = "Camera access required to join the queue.";
-          btnStart.disabled = false;
-          btnNext.disabled = false;
-          inQueueProcess = false;
-          return;
-        }
+        } catch (e) { lobbyMsg.innerText = "Camera access required."; inQueueProcess = false; return; }
       }
 
+      switchStage(stageSearching);
+
       try {
-        // ── FAILSAFE CLEANUP FOR STUCK SESSIONS ───────────────────────────
-        // Look for ANY old sessions hosted by this user that got stuck in 'waiting'
-        const selfCheckQuery = query(
-          collection(db, "showdown_queue"), 
-          where("hostUid", "==", currentUserProfile.uid), 
-          where("status", "==", "waiting")
-        );
-        const selfCheckSnapshot = await getDocs(selfCheckQuery);
-        
-        // Wipe out old records so they don't block the line or trigger ghost matches
-        if (!selfCheckSnapshot.empty) {
-          const batchPromises = selfCheckSnapshot.docs.map(d => deleteDoc(doc(db, "showdown_queue", d.id)));
-          await Promise.all(batchPromises);
-        }
-        // ─────────────────────────────────────────────────────────────
-
-        switchStage(stageSearching);
-
         const q = query(collection(db, "showdown_queue"), where("status", "==", "waiting"), limit(5));
-        const querySnapshot = await getDocs(q);
-
-        let selectedDoc = null;
-        if (!querySnapshot.empty) {
-          for (let d of querySnapshot.docs) {
-            if (d.data().hostUid !== currentUserProfile.uid) {
-              selectedDoc = d;
-              break;
-            }
-          }
-        }
+        const snap = await getDocs(q);
+        let selectedDoc = snap.docs.find(d => d.data().hostUid !== currentUserProfile.uid);
 
         if (selectedDoc) {
           const docRef = doc(db, "showdown_queue", selectedDoc.id);
-
-          const success = await runTransaction(db, async (transaction) => {
-            const sfDoc = await transaction.get(docRef);
+          const success = await runTransaction(db, async (tx) => {
+            const sfDoc = await tx.get(docRef);
             if (sfDoc.exists() && sfDoc.data().status === "waiting") {
-              transaction.update(docRef, { 
-                status: "matched",
-                guestPeerId: myPeerId,
-                guestUid: currentUserProfile.uid
-              });
+              tx.update(docRef, { status: "matched", guestPeerId: myPeerId, guestUid: currentUserProfile.uid });
               return sfDoc.data();
             }
             return null;
@@ -572,245 +276,114 @@
 
           if (success) {
             isHost = false;
-            opponentNameTag.innerText = await resolveUsername(success.hostUid);
-            const conn = peer.connect(success.hostPeerId);
-            setupDataChannel(conn);
+            opponentNameTag.innerText = "Player";
+            setupDataChannel(peer.connect(success.hostPeerId));
             inQueueProcess = false;
             return;
           }
         }
 
         isHost = true;
-        const newRoom = await addDoc(collection(db, "showdown_queue"), {
-          status: "waiting",
-          hostPeerId: myPeerId,
-          hostUid: currentUserProfile.uid,
-          guestPeerId: "",
-          guestUid: "",
-          createdAt: Date.now()
+        activeQueueDocRef = await addDoc(collection(db, "showdown_queue"), {
+          status: "waiting", hostPeerId: myPeerId, hostUid: currentUserProfile.uid, guestPeerId: "", guestUid: "", createdAt: Date.now()
         });
-        activeQueueDocRef = newRoom;
 
-        queueListenerUnsubscribe = onSnapshot(doc(db, "showdown_queue", newRoom.id), async (snapshot) => {
-          const data = snapshot.data();
-          if (data && data.status === "matched") {
-            opponentNameTag.innerText = await resolveUsername(data.guestUid);
-            deleteDoc(doc(db, "showdown_queue", newRoom.id));
-            if (queueListenerUnsubscribe) {
-              queueListenerUnsubscribe();
-              queueListenerUnsubscribe = null;
-            }
+        queueListenerUnsubscribe = onSnapshot(activeQueueDocRef, (docS) => {
+          const d = docS.data();
+          if (d && d.status === "matched") {
+            opponentNameTag.innerText = "Player";
+            deleteDoc(activeQueueDocRef);
+            if (queueListenerUnsubscribe) queueListenerUnsubscribe();
           }
         });
-
-      } catch (err) {
-        console.error("Matchmaking Failure: ", err);
-        cancelSearch();
-      }
+      } catch (err) { cancelSearch(); }
       inQueueProcess = false;
     }
 
-    async function cancelSearch() {
-      if (queueListenerUnsubscribe) {
-        queueListenerUnsubscribe();
-        queueListenerUnsubscribe = null;
-      }
-      if (isHost && activeQueueDocRef) {
-        try { 
-          await deleteDoc(activeQueueDocRef); 
-          activeQueueDocRef = null;
-        } catch(e){}
-      }
-      btnStart.disabled = false;
-      btnNext.disabled = false;
+    function cancelSearch() {
+      if (queueListenerUnsubscribe) queueListenerUnsubscribe();
+      if (isHost && activeQueueDocRef) deleteDoc(activeQueueDocRef);
       switchStage(stageLobby);
     }
 
-    // Set Up WebRTC Communication Channels
     function setupDataChannel(conn) {
       currentConnection = conn;
-
       currentConnection.on('open', () => {
-        if (queueListenerUnsubscribe) {
-          queueListenerUnsubscribe();
-          queueListenerUnsubscribe = null;
-        }
-        btnStart.disabled = false;
-        btnNext.disabled = false;
-
         if (!isHost && myMediaStream) {
-          const mediaCall = peer.call(conn.peer, myMediaStream);
-          mediaCall.on('stream', (remoteStream) => {
-            opponentVideo.srcObject = remoteStream;
-          });
+          const call = peer.call(conn.peer, myMediaStream);
+          call.on('stream', (stream) => { opponentVideo.srcObject = stream; });
         }
-
         runShowdownEngine();
       });
 
       currentConnection.on('data', (data) => {
-        if (data.type === 'sync_score') {
-          currentScore = data.score;
-          renderUIFrames();
-        }
+        if (data.type === 'sync_score') { currentScore = data.score; renderUIFrames(); }
       });
 
       currentConnection.on('close', () => {
         clearLoops();
-        opponentVideo.srcObject = null; 
-        lobbyMsg.style.color = "var(--text-muted)";
-        lobbyMsg.innerText = "Opponent left the match.";
         switchStage(stageLobby);
       });
     }
 
-    // Main Engine Logic Execution Loop
     function runShowdownEngine() {
       switchStage(stageMatch);
+      countdownText.style.display = 'block'; resultText.style.display = 'none'; btnNext.style.display = 'none'; btnExit.style.display = 'none';
+      currentScore = 50; scaleNeedle.style.left = '50%';
       
-      countdownText.style.display = 'block';
-      resultText.style.display = 'none';
-      btnNext.style.display = 'none';
-      btnExit.style.display = 'none';
-      currentScore = 50;
-      scaleNeedle.style.left = '50%';
-      userSlot.classList.remove('winning');
-      opponentSlot.classList.remove('winning');
+      if (privateRoomId) {
+        // Hide next options inside restricted duel lobbies
+        btnNext.style.setProperty("display", "none", "important");
+      }
 
       let timeLeft = 15;
       countdownText.innerText = timeLeft + "s";
 
       timerInterval = setInterval(() => {
-        timeLeft--;
-        countdownText.innerText = timeLeft + "s";
-        if (timeLeft <= 0) {
-          terminateShowdown();
-        }
+        timeLeft--; countdownText.innerText = timeLeft + "s";
+        if (timeLeft <= 0) terminateShowdown();
       }, 1000);
 
       matchInterval = setInterval(() => {
         if (isHost) {
           currentScore = AuraEngine.calculateMatchFlux(currentScore);
-          if (currentConnection && currentConnection.open) {
-            currentConnection.send({ type: 'sync_score', score: currentScore });
-          }
+          if (currentConnection?.open) currentConnection.send({ type: 'sync_score', score: currentScore });
           renderUIFrames();
         }
       }, 350);
     }
 
     function renderUIFrames() {
-      let calculatedUserPosition = isHost ? currentScore : (100 - currentScore);
-      scaleNeedle.style.left = calculatedUserPosition + '%';
+      let calculatedPos = isHost ? currentScore : (100 - currentScore);
+      scaleNeedle.style.left = calculatedPos + '%';
+      userAuraText.innerText = `Aura: +${Math.round((100 - calculatedPos) * 10)}`;
+      oppAuraText.innerText = `Aura: +${Math.round(calculatedPos * 10)}`;
 
-      let userAura = Math.round((100 - calculatedUserPosition) * 10);
-      let oppAura = Math.round(calculatedUserPosition * 10);
-      userAuraText.innerText = `Aura: +${userAura}`;
-      oppAuraText.innerText = `Aura: +${oppAura}`;
-
-      if (calculatedUserPosition < 48) {
-        userSlot.classList.add('winning');
-        opponentSlot.classList.remove('winning');
-      } else if (calculatedUserPosition > 52) {
-        opponentSlot.classList.add('winning');
-        userSlot.classList.remove('winning');
-      } else {
-        userSlot.classList.remove('winning');
-        opponentSlot.classList.remove('winning');
-      }
+      userSlot.className = `player-slot ${calculatedPos < 48 ? 'winning' : ''}`;
+      opponentSlot.className = `player-slot ${calculatedPos > 52 ? 'winning' : ''}`;
     }
 
-    // Overhauled Terminal System with Sub-Category Metrics
     function terminateShowdown() {
       clearLoops();
-
-      countdownText.style.display = 'none';
-      resultText.style.display = 'block';
-      btnNext.style.display = 'inline-block';
+      countdownText.style.display = 'none'; resultText.style.display = 'block';
       btnExit.style.display = 'inline-block';
+      if (!privateRoomId) btnNext.style.display = 'inline-block';
 
       let finalPosition = isHost ? currentScore : (100 - currentScore);
-      let targetPhrases = [];
-      let calculatedColor = "var(--text-muted)";
+      let phrases = OUTCOME_PHRASES.tie;
+      if (finalPosition < 20) phrases = OUTCOME_PHRASES.wonByATon;
+      else if (finalPosition < 40) phrases = OUTCOME_PHRASES.won;
+      else if (finalPosition < 48) phrases = OUTCOME_PHRASES.barelyWon;
+      else if (finalPosition > 52 && finalPosition <= 60) phrases = OUTCOME_PHRASES.barelyLost;
+      else if (finalPosition > 60 && finalPosition <= 80) phrases = OUTCOME_PHRASES.lost;
+      else if (finalPosition > 80) phrases = OUTCOME_PHRASES.lostByATon;
 
-      // Tier Bracket Evaluation System 
-      if (finalPosition < 20) {
-        targetPhrases = OUTCOME_PHRASES.wonByATon;
-        calculatedColor = "var(--accent)";
-        userSlot.classList.add('winning');
-        opponentSlot.classList.remove('winning');
-      } else if (finalPosition >= 20 && finalPosition < 40) {
-        targetPhrases = OUTCOME_PHRASES.won;
-        calculatedColor = "var(--accent)";
-        userSlot.classList.add('winning');
-        opponentSlot.classList.remove('winning');
-      } else if (finalPosition >= 40 && finalPosition < 48) {
-        targetPhrases = OUTCOME_PHRASES.barelyWon;
-        calculatedColor = "var(--accent)";
-        userSlot.classList.add('winning');
-        opponentSlot.classList.remove('winning');
-      } else if (finalPosition >= 48 && finalPosition <= 52) {
-        targetPhrases = OUTCOME_PHRASES.tie;
-        calculatedColor = "var(--text-muted)";
-        userSlot.classList.remove('winning');
-        opponentSlot.classList.remove('winning');
-      } else if (finalPosition > 52 && finalPosition <= 60) {
-        targetPhrases = OUTCOME_PHRASES.barelyLost;
-        calculatedColor = "#ef4444";
-        opponentSlot.classList.add('winning');
-        userSlot.classList.remove('winning');
-      } else if (finalPosition > 60 && finalPosition <= 80) {
-        targetPhrases = OUTCOME_PHRASES.lost;
-        calculatedColor = "#ef4444";
-        opponentSlot.classList.add('winning');
-        userSlot.classList.remove('winning');
-      } else {
-        targetPhrases = OUTCOME_PHRASES.lostByATon;
-        calculatedColor = "#ef4444";
-        opponentSlot.classList.add('winning');
-        userSlot.classList.remove('winning');
-      }
-
-      const rolledIndex = Math.floor(Math.random() * targetPhrases.length);
-      resultText.innerText = targetPhrases[rolledIndex];
-      resultText.style.color = calculatedColor;
+      resultText.innerText = phrases[Math.floor(Math.random() * phrases.length)];
+      resultText.style.color = finalPosition < 48 ? "var(--accent)" : finalPosition > 52 ? "#ef4444" : "var(--text-muted)";
     }
 
-    function clearLoops() {
-      clearInterval(timerInterval);
-      clearInterval(matchInterval);
-    }
-
-    function cleanExit() {
-      if (currentConnection) currentConnection.close();
-      opponentVideo.srcObject = null;
-      clearLoops();
-      switchStage(stageLobby);
-    }
-
-    // ── AUTOMATIC CLEANUP ON TAB CLOSE / LEAVE ─────────────────
-    async function handleUnexpectedDisconnect() {
-      if (isHost && activeQueueDocRef) {
-        try {
-          // Instantly wipe the document if they leave while in the queue stage
-          await deleteDoc(activeQueueDocRef);
-          activeQueueDocRef = null;
-        } catch (e) {
-          console.error("Failed to clean up queue room on tab leave:", e);
-        }
-      }
-    }
-
-    // Cleans up database if tab is closed or navigated away from
-    window.addEventListener("beforeunload", handleUnexpectedDisconnect);
-
-    // Cleans up database if they switch to a different tab or minimize the window
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
-        handleUnexpectedDisconnect();
-      }
-    });
-    // ─────────────────────────────────────────────────────────────
+    function clearLoops() { clearInterval(timerInterval); clearInterval(matchInterval); }
+    function cleanExit() { if (currentConnection) currentConnection.close(); clearLoops(); window.location.href = privateRoomId ? "../chat/" : "#"; switchStage(stageLobby); }
 
     btnStart.addEventListener('click', startMatchmaking);
     btnCancel.addEventListener('click', cancelSearch);
