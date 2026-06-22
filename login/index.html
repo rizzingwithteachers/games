@@ -107,10 +107,22 @@ const nameInput = document.getElementById("name");
 
 let signUpMode = false;
 
+/* REAL-TIME SPACE FILTER STRIPPER */
+nameInput.addEventListener("input", (e) => {
+  // Instantly deletes spaces if a user types or pastes them in
+  e.target.value = e.target.value.replace(/\s/g, "");
+});
+
 /* SIGN UP */
 async function signUp(username, emailVal, passwordVal) {
   if (!username?.trim()) {
     alert("Username is required");
+    return false;
+  }
+
+  // Backup guard to completely stop submission if spaces are detected
+  if (/\s/.test(username)) {
+    alert("Username cannot contain spaces!");
     return false;
   }
 
