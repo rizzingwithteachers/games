@@ -325,7 +325,7 @@
       opacity: 0.4 !important;
       filter: brightness(0.5) !important;
       pointer-events: none !important;
-      cursor: not-allowed !allowed;
+      cursor: not-allowed !important;
       box-shadow: none !important;
       transform: none !important;
       transition: none !important;
@@ -442,7 +442,7 @@ import {
   doc,
   getDoc,
   where
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 /* FIREBASE CONFIG */
 const firebaseConfig = {
@@ -845,11 +845,21 @@ function listenForNewMessages(user) {
     dbPrivateMessages = snapshot.docs.map(doc => {
       const data = doc.data();
       
+      // EXCLUSIVE ONE-TIME DUAL REDIRECTION ROUTER
       if (data.isOmoggleInvite && data.inviteStatus === "accepted") {
-        setTimeout(() => {
-          const myAssignedRole = currentUser.uid === data.senderId ? "host" : "guest";
-          window.location.href = `../omoggle/?room=${doc.id}&role=${myAssignedRole}`;
-        }, 1000);
+        const sessionRedirectToken = `omoggle_redirected_${doc.id}`;
+        
+        // Only run redirect sequence if browser tab hasn't already done it
+        if (!sessionStorage.getItem(sessionRedirectToken)) {
+          sessionStorage.setItem(sessionRedirectToken, "true");
+          
+          const currentAuthenticatedUid = auth.currentUser ? auth.currentUser.uid : user.uid;
+          const roleIdentityString = currentAuthenticatedUid === data.senderId ? "host" : "guest";
+          
+          setTimeout(() => {
+            window.location.href = `../omoggle/?room=${doc.id}&role=${roleIdentityString}`;
+          }, 800);
+        }
       }
       return { ...data, id: doc.id, isWhisper: true };
     });
@@ -940,7 +950,7 @@ function displayMessage(scroller, msgData) {
         `;
       } else {
         inviteContextLineText = `<p style="color:#6c63ff; font-weight:600;">Sent Omoggle duel request to your opponent (Pending...)</p>`;
-        internalDuelPanelHTML = ""; // Emptied out panel layout elements for clean sender dashboards
+        internalDuelPanelHTML = ""; 
       }
     } else if (msgData.inviteStatus === "accepted") {
       inviteContextLineText = `<p style="color:#10b981; font-weight:600;">Omoggle duel match accepted!</p>`;
