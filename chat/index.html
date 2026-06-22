@@ -244,7 +244,12 @@
       font-weight: 600;
       margin-bottom: 0.5rem;
       padding-left: 1rem;
-      display: none;
+  
+      /* OLD: display: none; */
+      /* NEW: Keeps the space locked so elements don't shift */
+      visibility: hidden; 
+      height: 1.2rem; /* Reserves a fixed height block */
+  
       animation: fadeIn 0.2s ease;
     }
 
@@ -443,7 +448,10 @@ function startCooldownTimer() {
   const textContainer = document.getElementById("cooldown-timer-text");
 
   btn.disabled = true;
-  textContainer.style.display = "block";
+  
+  /* OLD: textContainer.style.display = "block"; */
+  /* NEW: Makes the pre-reserved space visible */
+  textContainer.style.visibility = "visible";
 
   const updateDisplay = () => {
     const elapsed = Date.now() - lastMessageTime;
@@ -452,13 +460,20 @@ function startCooldownTimer() {
     if (remaining <= 0) {
       clearInterval(countdownInterval);
       btn.disabled = false;
-      textContainer.style.display = "none";
+      
+      /* OLD: textContainer.style.display = "none"; */
+      /* NEW: Hides the text but keeps the space intact */
+      textContainer.style.visibility = "hidden";
       textContainer.textContent = "";
     } else {
       const secondsLeft = Math.ceil(remaining / 1000);
       textContainer.textContent = `You must wait ${secondsLeft} more second${secondsLeft > 1 ? 's' : ''} to send a message`;
     }
   };
+
+  updateDisplay();
+  const countdownInterval = setInterval(updateDisplay, 100);
+}
 
   updateDisplay();
   const countdownInterval = setInterval(updateDisplay, 100);
