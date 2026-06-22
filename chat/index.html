@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Carson Games - Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ── THEME CONFIGURATION ──────────────────────────────── */
@@ -441,6 +441,7 @@ let lastMessageTime = 0;
 const MESSAGE_COOLDOWN = 2000; 
 let lastLoadedTimestamp = null;
 let isLoadingMore = false;
+let initialSnapshotReceived = false; 
 
 let dbPublicMessages = [];
 let dbPrivateMessages = [];
@@ -450,6 +451,14 @@ let localUsersCache = [];
 let activeSuggestionIndex = 0;
 let currentMentionTriggerIdx = -1; 
 let currentMentionType = ""; 
+
+/* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
+setTimeout(() => {
+  if (auth.currentUser && !initialSnapshotReceived) {
+    console.warn("Failsafe triggered: Chat channel frozen. Forcing reload...");
+    window.location.reload();
+  }
+}, 2000);
 
 /* AUTH CHECK */
 onAuthStateChanged(auth, async (user) => {
@@ -517,8 +526,6 @@ async function startChat(user) {
   const input = document.getElementById("message-input");
   const btn = document.getElementById("send-message-btn");
   const scroller = document.getElementById("message-scroller");
-
-  await fetchAndCacheUsers();
 
   listenForNewMessages(user);
   scroller.addEventListener("scroll", handleScrollPagination);
@@ -614,24 +621,36 @@ async function startChat(user) {
   };
 }
 
-/* CACHE DISPATCHER */
-async function fetchAndCacheUsers() {
-  try {
-    const snap = await getDocs(collection(db, "users"));
-    localUsersCache = snap.docs.map(doc => ({
-      id: doc.id,
-      username: doc.data().username || "Unknown",
-      avatar: (doc.data().username ? doc.data().username[0].toUpperCase() : "U")
-    }));
-  } catch (err) {
-    console.error("Error warming up local user cache:", err);
-  }
+/* ZERO-READ DYNAMIC LOCAL CACHE ENGINE */
+function updateAutocompleteCacheFromLoadedMessages() {
+  const uniqueUsers = new Map();
+  let allMessages = [...dbPublicMessages, ...dbPrivateMessages];
+
+  allMessages.forEach(msg => {
+    if (msg.userId && msg.username) {
+      uniqueUsers.set(msg.userId, {
+        id: msg.userId,
+        username: msg.username,
+        avatar: msg.avatar || msg.username[0].toUpperCase()
+      });
+    } else if (msg.senderId && msg.username) {
+      uniqueUsers.set(msg.senderId, {
+        id: msg.senderId,
+        username: msg.username,
+        avatar: msg.avatar || msg.username[0].toUpperCase()
+      });
+    }
+  });
+
+  localUsersCache = Array.from(uniqueUsers.values());
 }
 
 /* REAL-TIME STREAM LISTENERS */
 function listenForNewMessages(user) {
-  const publicQ = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(50));
+  // Configured to pull down a clean 20 items initially
+  const publicQ = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(20));
   onSnapshot(publicQ, (snapshot) => {
+    initialSnapshotReceived = true; 
     dbPublicMessages = snapshot.docs.map(doc => ({ ...doc.data(), isWhisper: false }));
     if (!lastLoadedTimestamp && snapshot.docs.length > 0) {
       lastLoadedTimestamp = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
@@ -648,6 +667,11 @@ function listenForNewMessages(user) {
 
 function renderMessages() {
   const scroller = document.getElementById("message-scroller");
+  const isPinnedToBottom = scroller.scrollHeight - scroller.clientHeight <= scroller.scrollTop + 30;
+
+  // Re-build active user registry instantly via browser memory
+  updateAutocompleteCacheFromLoadedMessages();
+
   scroller.innerHTML = "";
 
   let allMessages = [...dbPublicMessages, ...dbPrivateMessages];
@@ -662,7 +686,10 @@ function renderMessages() {
 
   allMessages.forEach(msg => displayMessage(scroller, msg));
   localPendingQueue.forEach(pendingMsg => displayMessage(scroller, pendingMsg));
-  scroller.scrollTop = scroller.scrollHeight;
+  
+  if (isPinnedToBottom || initialSnapshotReceived) {
+    scroller.scrollTop = scroller.scrollHeight;
+  }
 }
 
 function displayMessage(scroller, msgData, returnHTML = false) {
@@ -873,28 +900,51 @@ function closePopover() {
   popover.innerHTML = "";
 }
 
-/* HISTORICAL PAGINATION */
+/* HISTORICAL PAGINATION INTERACTION TRACKER */
 async function handleScrollPagination() {
   const scroller = document.getElementById("message-scroller");
+  
   if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp) {
     isLoadingMore = true;
+
+    // Inject temporary historical status loader banner at top
+    const loaderBanner = document.createElement("div");
+    loaderBanner.id = "history-loading-banner";
+    loaderBanner.style.cssText = "text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; padding: 10px 0;";
+    loaderBanner.textContent = "Getting more messages...";
+    scroller.insertBefore(loaderBanner, scroller.firstChild);
+
+    const initialScrollHeight = scroller.scrollHeight;
+
     try {
-      const olderQuery = query(collection(db, "messages"), orderBy("timestamp", "desc"), startAfter(lastLoadedTimestamp), limit(25));
+      // Pulls historical chunks of 20 elements at a time
+      const olderQuery = query(collection(db, "messages"), orderBy("timestamp", "desc"), startAfter(lastLoadedTimestamp), limit(20));
       const olderSnapshot = await getDocs(olderQuery);
-      const olderMessages = olderSnapshot.docs.reverse();
       
-      if (olderMessages.length > 0) {
+      const existingBanner = document.getElementById("history-loading-banner");
+      if (existingBanner) existingBanner.remove();
+
+      if (olderSnapshot.docs.length > 0) {
         lastLoadedTimestamp = olderSnapshot.docs[olderSnapshot.docs.length - 1].data().timestamp;
+        
+        const olderMessages = olderSnapshot.docs.reverse();
         const fragment = document.createDocumentFragment();
+        
         olderMessages.forEach(doc => {
           const div = document.createElement("div");
           div.innerHTML = displayMessage(null, { ...doc.data(), isWhisper: false }, true);
           fragment.appendChild(div);
         });
+        
         scroller.insertBefore(fragment, scroller.firstChild);
+        
+        // Pin calculation avoids rapid layout shifts or jumping screens
+        scroller.scrollTop = scroller.scrollHeight - initialScrollHeight;
       }
     } catch (err) {
       console.error("Error loading older messages:", err);
+      const existingBanner = document.getElementById("history-loading-banner");
+      if (existingBanner) existingBanner.remove();
     }
     isLoadingMore = false;
   }
