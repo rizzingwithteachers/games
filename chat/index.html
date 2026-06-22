@@ -325,7 +325,7 @@
       opacity: 0.4 !important;
       filter: brightness(0.5) !important;
       pointer-events: none !important;
-      cursor: not-allowed !important;
+      cursor: not-allowed !allowed;
       box-shadow: none !important;
       transform: none !important;
       transition: none !important;
@@ -467,7 +467,7 @@ const EX_COMMANDS = [
 ];
 
 let currentUser = null;
-let currentUsername = "";
+let currentUsername = "User"; 
 let currentUserRole = "user"; 
 let currentUserMutedUntil = 0; 
 
@@ -481,13 +481,15 @@ let dbPublicMessages = [];
 let dbPrivateMessages = [];
 let dbHistoricalMessages = []; 
 let localPendingQueue = [];
-let localUsersCache = []; 
+
+// Autocomplete Cache Arrays
+let allRegisteredUsers = []; 
+let localUsersCache = [];     
 
 let activeSuggestionIndex = 0;
 let currentMentionTriggerIdx = -1; 
 let currentMentionType = ""; 
 
-// Inline Text Area Edit State Machine Variables
 let isEditingMode = false;
 let editingMessageId = null;
 let editingCollectionTarget = "messages";
@@ -509,6 +511,8 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   currentUser = user;
+  currentUsername = user.email ? user.email.split("@")[0] : "User";
+
   const userRef = doc(db, "users", user.uid);
 
   onSnapshot(userRef, (snap) => {
@@ -532,6 +536,66 @@ onAuthStateChanged(auth, async (user) => {
   await startChat(user);
   addLogout();
 });
+
+/* DAILY USER LIST CACHE SYNC ENGINE */
+async function loadAndCacheAllUsers() {
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const cachedDate = localStorage.getItem("chat_users_cache_date");
+    const cachedData = localStorage.getItem("chat_users_cache_list");
+
+    if (cachedDate === todayStr && cachedData) {
+      allRegisteredUsers = JSON.parse(cachedData);
+      return;
+    }
+
+    localStorage.removeItem("chat_users_cache_date");
+    localStorage.removeItem("chat_users_cache_list");
+
+    const snap = await getDocs(collection(db, "users"));
+    const fetchedUsers = snap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        username: data.username || "User",
+        avatar: data.username ? data.username[0].toUpperCase() : "U"
+      };
+    });
+
+    allRegisteredUsers = fetchedUsers;
+    localStorage.setItem("chat_users_cache_date", todayStr);
+    localStorage.setItem("chat_users_cache_list", JSON.stringify(fetchedUsers));
+  } catch (err) {
+    console.error("Failed to compile master user profile storage parameters:", err);
+  }
+}
+
+/* LOCAL SYSTEM CHAT NOTIFIER NOTIFICATION MATRICES */
+function showLocalSystemMessage(text, isError = false) {
+  const scroller = document.getElementById("message-scroller");
+  const isPinnedToBottom = scroller.scrollHeight - scroller.clientHeight <= scroller.scrollTop + 30;
+  
+  const div = document.createElement("div");
+  div.className = "msg-block";
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const textColor = isError ? "#ef4444" : "#6c63ff";
+
+  div.innerHTML = `
+    <div class="msg-avatar" style="background: #242549; color: #fff;">S</div>
+    <div class="msg-content">
+      <div class="msg-top">
+        <h5>Server <span>${time}</span></h5>
+      </div>
+      <p style="color: ${textColor}; font-weight: 600;">${text}</p>
+    </div>
+  `;
+
+  scroller.appendChild(div);
+  
+  if (isPinnedToBottom || initialSnapshotReceived) {
+    scroller.scrollTop = scroller.scrollHeight;
+  }
+}
 
 /* INLINE TIMER HANDLER */
 function startCooldownTimer() {
@@ -566,6 +630,8 @@ async function startChat(user) {
   const btn = document.getElementById("send-message-btn");
   const scroller = document.getElementById("message-scroller");
 
+  await loadAndCacheAllUsers();
+
   listenForNewMessages(user);
   scroller.addEventListener("scroll", handleScrollPagination);
   setupAutocompleteEngine(input);
@@ -574,7 +640,6 @@ async function startChat(user) {
     let textToSend = input.value.trim();
     if (!textToSend) return;
     
-    // Intercept flow if the user is submitting an update modification inside the main tray
     if (isEditingMode) {
       try {
         await updateDoc(doc(db, editingCollectionTarget, editingMessageId), {
@@ -592,7 +657,7 @@ async function startChat(user) {
     
     if (currentUserMutedUntil && Date.now() < currentUserMutedUntil) {
       const minsRemaining = Math.ceil((currentUserMutedUntil - Date.now()) / 60000);
-      alert(`You are currently muted. You can participate again in ${minsRemaining} minute(s).`);
+      showLocalSystemMessage(`You are currently muted. You can participate again in ${minsRemaining} minute(s).`, true);
       return;
     }
 
@@ -612,13 +677,13 @@ async function startChat(user) {
       if (commandKey === "/mute" && (currentUserRole === "admin" || currentUserRole === "owner")) {
         const parsedTargetName = segments[1]?.replace("@", "");
         const minutesValue = parseInt(segments[2]);
-        if (!parsedTargetName || isNaN(minutesValue)) { alert("Syntax: /mute @username minutes"); return; }
+        if (!parsedTargetName || isNaN(minutesValue)) { showLocalSystemMessage("Syntax Error: /mute @username minutes", true); return; }
         
         const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
         if (targetCachedProfile) {
           await updateDoc(doc(db, "users", targetCachedProfile.id), { mutedUntil: Date.now() + (minutesValue * 60 * 1000) });
-          alert(`Muted user @${parsedTargetName} for ${minutesValue} minutes.`);
-        } else { alert("Target not found inside loaded chat history registry."); }
+          showLocalSystemMessage(`Muted user @${parsedTargetName} for ${minutesValue} minutes.`, false);
+        } else { showLocalSystemMessage("Moderation Issue: Target not found inside loaded chat history registry.", true); }
         return;
       }
 
@@ -627,8 +692,8 @@ async function startChat(user) {
         const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
         if (targetCachedProfile) {
           await updateDoc(doc(db, "users", targetCachedProfile.id), { role: "admin" });
-          alert(`Promoted @${parsedTargetName} to Admin privileges.`);
-        }
+          showLocalSystemMessage(`Success: Promoted @${parsedTargetName} to Admin privileges.`, false);
+        } else { showLocalSystemMessage("Target user profile cache reference not found.", true); }
         return;
       }
 
@@ -637,8 +702,8 @@ async function startChat(user) {
         const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
         if (targetCachedProfile) {
           await updateDoc(doc(db, "users", targetCachedProfile.id), { role: "owner" });
-          alert(`Promoted @${parsedTargetName} to Head Admin (Owner) privileges.`);
-        }
+          showLocalSystemMessage(`Success: Promoted @${parsedTargetName} to Head Admin (Owner) privileges.`, false);
+        } else { showLocalSystemMessage("Target user profile cache reference not found.", true); }
         return;
       }
     }
@@ -666,7 +731,7 @@ async function startChat(user) {
       text: isOmoggleCommand && !parsedText ? "Do you want to duel in Omoggle?" : parsedText,
       username: currentUsername,
       userId: user.uid,
-      avatar: currentUsername[0].toUpperCase(),
+      avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
       timestamp: null,
       isPending: true,
       isWhisper: targetUsernames.length > 0,
@@ -698,7 +763,7 @@ async function startChat(user) {
           text: isOmoggleCommand && !parsedText ? "Do you want to duel in Omoggle?" : parsedText,
           username: currentUsername,
           senderId: user.uid,
-          avatar: currentUsername[0].toUpperCase(),
+          avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
           timestamp: serverTimestamp(),
           participants: participantIds,
           role: currentUserRole,
@@ -716,7 +781,7 @@ async function startChat(user) {
           text: textToSend,
           username: currentUsername,
           userId: user.uid,
-          avatar: currentUsername[0].toUpperCase(),
+          avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
           timestamp: serverTimestamp(),
           role: currentUserRole,
           clientSideId: clientSideId
@@ -724,7 +789,7 @@ async function startChat(user) {
       }
     } catch (err) {
       console.error("Error sending message:", err);
-      alert(err.message || "Failed to deliver message.");
+      showLocalSystemMessage(err.message || "Failed to deliver message.", true);
       localPendingQueue = localPendingQueue.filter(m => m.clientSideId !== clientSideId);
       renderMessages();
     }
@@ -734,8 +799,12 @@ async function startChat(user) {
 /* ZERO-READ DYNAMIC LOCAL CACHE ENGINE */
 function updateAutocompleteCacheFromLoadedMessages() {
   const uniqueUsers = new Map();
-  let allMessages = [...dbHistoricalMessages, ...dbPublicMessages, ...dbPrivateMessages];
 
+  allRegisteredUsers.forEach(user => {
+    uniqueUsers.set(user.id, user);
+  });
+
+  let allMessages = [...dbHistoricalMessages, ...dbPublicMessages, ...dbPrivateMessages];
   allMessages.forEach(msg => {
     if (msg.userId && msg.username) {
       uniqueUsers.set(msg.userId, {
@@ -765,7 +834,6 @@ function listenForNewMessages(user) {
       lastLoadedTimestamp = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
     }
     
-    // If the room has fewer than 20 messages total from day one, all assets are preloaded
     if (snapshot.docs.length < 20) {
       allMessagesLoaded = true;
     }
@@ -797,17 +865,15 @@ function renderMessages() {
 
   scroller.innerHTML = "";
 
-  // Inject the permanent verification banner directly at the head index point
   if (allMessagesLoaded) {
     const banner = document.createElement("div");
-    banner.style.cssText = "text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; padding: 10px 0; width: 100%;";
+    banner.style.cssText = "text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; padding: 10px 0; width: 100%; margin-bottom: 0.5rem;";
     banner.textContent = "All messages loaded";
     scroller.appendChild(banner);
   }
 
   let allMessages = [...dbHistoricalMessages, ...dbPublicMessages, ...dbPrivateMessages];
   
-  // Deduplicate array nodes by document identifiers or client tokens
   const seenIds = new Set();
   allMessages = allMessages.filter(msg => {
     const msgId = msg.id || msg.clientSideId;
@@ -834,7 +900,7 @@ function renderMessages() {
   }
 }
 
-function displayMessage(scroller, msgData, returnHTML = false) {
+function displayMessage(scroller, msgData) {
   const div = document.createElement("div");
   div.className = "msg-block" + (msgData.isPending ? " pending" : "");
   if(msgData.clientSideId) div.id = msgData.clientSideId;
@@ -847,15 +913,22 @@ function displayMessage(scroller, msgData, returnHTML = false) {
   
   const whisperTag = msgData.isWhisper ? `<span style="color: #a855f7; font-size: 0.75rem; margin-left: 8px; background: rgba(168,85,247,0.12); padding: 2px 7px; border-radius: 99px; font-weight: 600; border: 1px solid rgba(168,85,247,0.2);">Whisper</span>` : "";
 
-  let textContent = escapeHtml(msgData.text);
+  const safeUsername = msgData.username || "User";
+  const avatarLetter = safeUsername.length > 0 ? safeUsername[0].toUpperCase() : "U";
+
+  let textContent = escapeHtml(msgData.text || "");
   textContent = textContent.replace(/@([a-zA-Z0-9_\-]+)/g, '<span style="color: #3b82f6; background: rgba(59,130,246,0.15); padding: 1px 5px; border-radius: 4px; font-weight: 600; border: 1px solid rgba(59,130,246,0.2);">@$1</span>');
 
   let layoutStructuralString = "";
 
   if (msgData.isOmoggleInvite) {
     let internalDuelPanelHTML = "";
+    let inviteContextLineText = "";
+    const userIsChallengeSender = currentUser && currentUser.uid === msgData.senderId;
+
     if (msgData.inviteStatus === "pending") {
-      if (currentUser && currentUser.uid !== msgData.senderId) {
+      if (!userIsChallengeSender) {
+        inviteContextLineText = `<p style="color:#6c63ff; font-weight:600;">@${safeUsername} sent you a duel request on Omoggle!</p>`;
         internalDuelPanelHTML = `
           <div class="duel-card">
             <span class="duel-card-msg">Do you want to duel in Omoggle?</span>
@@ -866,15 +939,14 @@ function displayMessage(scroller, msgData, returnHTML = false) {
           </div>
         `;
       } else {
-        internalDuelPanelHTML = `
-          <div class="duel-card">
-            <span class="duel-card-msg">Sent Omoggle duel request to your opponent (Pending...)</span>
-          </div>
-        `;
+        inviteContextLineText = `<p style="color:#6c63ff; font-weight:600;">Sent Omoggle duel request to your opponent (Pending...)</p>`;
+        internalDuelPanelHTML = ""; // Emptied out panel layout elements for clean sender dashboards
       }
     } else if (msgData.inviteStatus === "accepted") {
+      inviteContextLineText = `<p style="color:#10b981; font-weight:600;">Omoggle duel match accepted!</p>`;
       internalDuelPanelHTML = `<div class="duel-card" style="border-color:#10b981;"><span class="duel-card-msg" style="color:#10b981;">Duel accepted! Redirecting...</span></div>`;
     } else {
+      inviteContextLineText = `<p style="color:#ef4444; font-weight:600;">Omoggle challenge update</p>`;
       internalDuelPanelHTML = `<div class="duel-card" style="border-color:#ef4444;"><span class="duel-card-msg" style="color:#ef4444;">Challenge declined.</span></div>`;
     }
 
@@ -884,7 +956,7 @@ function displayMessage(scroller, msgData, returnHTML = false) {
         <div class="msg-top">
           <h5>Server <span>${time}</span></h5>
         </div>
-        <p style="color:#6c63ff; font-weight:600;">@${msgData.username} sent you a duel request on Omoggle!</p>
+        ${inviteContextLineText}
         ${internalDuelPanelHTML}
       </div>
     `;
@@ -904,10 +976,10 @@ function displayMessage(scroller, msgData, returnHTML = false) {
     }
 
     layoutStructuralString = `
-      <div class="msg-avatar" style="background: linear-gradient(135deg, ${getGradient(msgData.username)});">${msgData.avatar || msgData.username[0].toUpperCase()}</div>
+      <div class="msg-avatar" style="background: linear-gradient(135deg, ${getGradient(safeUsername)});">${avatarLetter}</div>
       <div class="msg-content">
         <div class="msg-top">
-          <h5>${msgData.username} <span>${time}</span> ${statusBadgeHTML} ${whisperTag}</h5>
+          <h5>${safeUsername} <span>${time}</span> ${statusBadgeHTML} ${whisperTag}</h5>
         </div>
         <p>${textContent}</p>
       </div>
@@ -916,7 +988,6 @@ function displayMessage(scroller, msgData, returnHTML = false) {
   }
 
   div.innerHTML = layoutStructuralString;
-  if (returnHTML) return div.innerHTML;
 
   if (msgData.isOmoggleInvite && msgData.inviteStatus === "pending" && currentUser && currentUser.uid !== msgData.senderId) {
     const accBtn = div.querySelector(".btn-duel-accept");
@@ -963,29 +1034,49 @@ function setupAutocompleteEngine(input) {
     const val = input.value;
     const selectionStart = input.selectionStart;
     
-    if (val === "/") {
-      const clearCommands = EX_COMMANDS.filter(c => {
-        if (c.name === "/mute") return currentUserRole === "admin" || currentUserRole === "owner";
-        if (c.name === "/admin" || c.name === "/headadmin") return currentUserRole === "owner";
-        return true;
-      });
-      showCommands(clearCommands);
+    if (!val) {
+      closePopover();
       return;
     }
 
     const textBeforeCursor = val.substring(0, selectionStart);
-    const words = textBeforeCursor.split(" ");
+    const words = textBeforeCursor.split(/\s+/);
     const currentWordIdx = words.length - 1;
     const currentWord = words[currentWordIdx];
     const wordStartIdx = textBeforeCursor.lastIndexOf(currentWord);
 
-    const baseCommandContext = words[0];
-    if (baseCommandContext === "/w" || baseCommandContext === "/omoggle") {
+    if (val.startsWith("/")) {
+      if (currentWordIdx === 0) {
+        const clearCommands = EX_COMMANDS.filter(c => {
+          if (c.name === "/mute") return currentUserRole === "admin" || currentUserRole === "owner";
+          if (c.name === "/admin" || c.name === "/headadmin") return currentUserRole === "owner";
+          return true;
+        }).filter(c => c.name.toLowerCase().startsWith(val.toLowerCase()));
+
+        if (clearCommands.length > 0) {
+          showCommands(clearCommands);
+          return;
+        } else {
+          closePopover();
+          return;
+        }
+      }
+    }
+
+    const baseCommandContext = words[0].toLowerCase();
+    const targetAutocompleteCommands = ["/w", "/omoggle", "/mute", "/admin", "/headadmin"];
+
+    if (targetAutocompleteCommands.includes(baseCommandContext)) {
       let isTargetingPhase = true;
-      for (let i = 1; i < currentWordIdx; i++) {
-        if (!words[i].startsWith("@")) {
-          isTargetingPhase = false;
-          break;
+
+      if (["/mute", "/admin", "/headadmin"].includes(baseCommandContext) && currentWordIdx > 1) {
+        isTargetingPhase = false;
+      } else {
+        for (let i = 1; i < currentWordIdx; i++) {
+          if (!words[i].startsWith("@")) {
+            isTargetingPhase = false;
+            break;
+          }
         }
       }
 
@@ -995,7 +1086,7 @@ function setupAutocompleteEngine(input) {
           searchStr = searchStr.substring(1);
         }
 
-        if (currentWord === baseCommandContext || currentWord === "") {
+        if (currentWord === words[0] || currentWord === "") {
           searchStr = "";
         }
 
@@ -1007,7 +1098,7 @@ function setupAutocompleteEngine(input) {
 
         if (filtered.length > 0) {
           currentMentionTriggerIdx = wordStartIdx;
-          showMentions(filtered, currentWord === baseCommandContext ? "command-inline" : "whisper-target");
+          showMentions(filtered, currentWord === words[0] ? "command-inline" : "whisper-target");
           return;
         }
       }
@@ -1112,7 +1203,8 @@ function showMentions(users, type) {
       const currentVal = input.value;
       let newCursorPos = 0;
 
-      const routingContextCmdStr = currentVal.startsWith("/omoggle") ? "/omoggle" : "/w";
+      const cmdParts = currentVal.trim().split(/\s+/);
+      const routingContextCmdStr = cmdParts[0];
 
       if (currentMentionType === "command-inline") {
         input.value = routingContextCmdStr + " @" + u.username + " ";
@@ -1138,6 +1230,12 @@ function showMentions(users, type) {
     popover.appendChild(div);
   });
   popover.style.display = "block";
+}
+
+function closePopover() {
+  const popover = document.getElementById("suggestions-popover");
+  popover.style.display = "none";
+  popover.innerHTML = "";
 }
 
 /* HISTORICAL PAGINATION INTERACTION TRACKER */
