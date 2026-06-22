@@ -1099,6 +1099,7 @@ async function handleScrollPagination() {
   if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp) {
     isLoadingMore = true;
 
+    // Inject temporary historical status loader banner at top
     const loaderBanner = document.createElement("div");
     loaderBanner.id = "history-loading-banner";
     loaderBanner.style.cssText = "text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; padding: 10px 0;";
@@ -1108,6 +1109,7 @@ async function handleScrollPagination() {
     const initialScrollHeight = scroller.scrollHeight;
 
     try {
+      // Pulls historical chunks of 20 elements at a time
       const olderQuery = query(collection(db, "messages"), orderBy("timestamp", "desc"), startAfter(lastLoadedTimestamp), limit(20));
       const olderSnapshot = await getDocs(olderQuery);
       
@@ -1121,12 +1123,20 @@ async function handleScrollPagination() {
         const fragment = document.createDocumentFragment();
         
         olderMessages.forEach(doc => {
+          const data = doc.data();
           const div = document.createElement("div");
-          div.innerHTML = displayMessage(null, { ...doc.data(), isWhisper: false }, true);
+          
+          // Apply proper CSS layouts and identifiers to the parent container
+          div.className = "msg-block" + (data.isPending ? " pending" : "");
+          if (data.clientSideId) div.id = data.clientSideId;
+          
+          div.innerHTML = displayMessage(null, { ...data, id: doc.id, isWhisper: false }, true);
           fragment.appendChild(div);
         });
         
         scroller.insertBefore(fragment, scroller.firstChild);
+        
+        // Pin calculation avoids rapid layout shifts or jumping screens
         scroller.scrollTop = scroller.scrollHeight - initialScrollHeight;
       }
     } catch (err) {
