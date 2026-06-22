@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Carson Games - Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ── THEME CONFIGURATION ──────────────────────────────── */
@@ -263,10 +263,10 @@
     .action-control-btn:hover { color: var(--text); border-color: var(--text-muted); }
     .action-control-btn.btn-delete-msg:hover { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.4); }
 
-    /* Custom Image Handling Optimization Rule */
+    /* Custom Image Handling Optimization Rule Matrix */
     .tray-icon-img { width: 14px; height: 14px; object-fit: contain; pointer-events: none; }
 
-    /* Identity Badge Custom Styling Rule Strings */
+    /* Identity Badge Custom Styling Rules */
     .badge-admin { color: #3b82f6; font-size: 0.72rem; background: rgba(59,130,246,0.12); padding: 2px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(59,130,246,0.2); text-transform: uppercase; margin-left: 4px; }
     .badge-owner { color: #f59e0b; font-size: 0.72rem; background: rgba(245,158,11,0.12); padding: 2px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(245,158,11,0.2); text-transform: uppercase; margin-left: 4px; }
 
@@ -485,6 +485,11 @@ let activeSuggestionIndex = 0;
 let currentMentionTriggerIdx = -1; 
 let currentMentionType = ""; 
 
+// Inline Text Area Edit State Machine Variables
+let isEditingMode = false;
+let editingMessageId = null;
+let editingCollectionTarget = "messages";
+
 /* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
   if (auth.currentUser && !initialSnapshotReceived) {
@@ -565,6 +570,22 @@ async function startChat(user) {
   btn.onclick = async () => {
     let textToSend = input.value.trim();
     if (!textToSend) return;
+    
+    // Intercept flow if the user is submitting an update modification inside the main tray
+    if (isEditingMode) {
+      try {
+        await updateDoc(doc(db, editingCollectionTarget, editingMessageId), {
+          text: textToSend
+        });
+      } catch (err) {
+        console.error("Error writing message update modification:", err);
+      }
+      isEditingMode = false;
+      editingMessageId = null;
+      btn.textContent = "Send";
+      input.value = "";
+      return; 
+    }
     
     if (currentUserMutedUntil && Date.now() < currentUserMutedUntil) {
       const minsRemaining = Math.ceil((currentUserMutedUntil - Date.now()) / 60000);
@@ -882,19 +903,29 @@ function displayMessage(scroller, msgData, returnHTML = false) {
   const dataCollectionTargetStr = msgData.isWhisper ? "whispers" : "messages";
 
   if (editBtn) {
-    editBtn.onclick = async () => {
-      const revisedTextPayload = prompt("Update message content parameters:", msgData.text);
-      if (revisedTextPayload && revisedTextPayload.trim() !== "") {
-        await updateDoc(doc(db, dataCollectionTargetStr, msgData.id), { text: revisedTextPayload.trim() });
-      }
+    editBtn.onclick = () => {
+      const messageInput = document.getElementById("message-input");
+      const sendButtonElement = document.getElementById("send-message-btn");
+      
+      // Inject parameters into global edit states
+      isEditingMode = true;
+      editingMessageId = msgData.id;
+      editingCollectionTarget = dataCollectionTargetStr;
+      
+      // Mirror existing text body values to the chat entry field
+      messageInput.value = msgData.text;
+      sendButtonElement.textContent = "Edit";
+      
+      // Focus element node triggers soft mobile keypads contextually on tablets/iPads
+      messageInput.focus();
+      messageInput.selectionStart = messageInput.selectionEnd = messageInput.value.length;
     };
   }
 
   if (deleteBtn) {
     deleteBtn.onclick = async () => {
-      if (confirm("Are you sure you want to permanently erase this message?")) {
-        await deleteDoc(doc(db, dataCollectionTargetStr, msgData.id));
-      }
+      // Stripped confirmation window alert requirement as requested for instant deletion
+      await deleteDoc(doc(db, dataCollectionTargetStr, msgData.id));
     };
   }
 
@@ -1086,12 +1117,6 @@ function showMentions(users, type) {
   popover.style.display = "block";
 }
 
-function closePopover() {
-  const popover = document.getElementById("suggestions-popover");
-  popover.style.display = "none";
-  popover.innerHTML = "";
-}
-
 /* HISTORICAL PAGINATION INTERACTION TRACKER */
 async function handleScrollPagination() {
   const scroller = document.getElementById("message-scroller");
@@ -1099,7 +1124,6 @@ async function handleScrollPagination() {
   if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp) {
     isLoadingMore = true;
 
-    // Inject temporary historical status loader banner at top
     const loaderBanner = document.createElement("div");
     loaderBanner.id = "history-loading-banner";
     loaderBanner.style.cssText = "text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; padding: 10px 0;";
@@ -1109,7 +1133,6 @@ async function handleScrollPagination() {
     const initialScrollHeight = scroller.scrollHeight;
 
     try {
-      // Pulls historical chunks of 20 elements at a time
       const olderQuery = query(collection(db, "messages"), orderBy("timestamp", "desc"), startAfter(lastLoadedTimestamp), limit(20));
       const olderSnapshot = await getDocs(olderQuery);
       
@@ -1126,7 +1149,6 @@ async function handleScrollPagination() {
           const data = doc.data();
           const div = document.createElement("div");
           
-          // Apply proper CSS layouts and identifiers to the parent container
           div.className = "msg-block" + (data.isPending ? " pending" : "");
           if (data.clientSideId) div.id = data.clientSideId;
           
@@ -1135,8 +1157,6 @@ async function handleScrollPagination() {
         });
         
         scroller.insertBefore(fragment, scroller.firstChild);
-        
-        // Pin calculation avoids rapid layout shifts or jumping screens
         scroller.scrollTop = scroller.scrollHeight - initialScrollHeight;
       }
     } catch (err) {
