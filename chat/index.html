@@ -46,6 +46,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
+    /* Ambient Subtle Noise Background Overlay */
     body::before {
       content: "";
       position: fixed;
@@ -120,6 +121,10 @@
       background: rgba(255, 255, 255, 0.04);
     }
 
+    nav a:hover::after {
+      width: 100%;
+    }
+
     .nav-auth-btn {
       background: var(--accent);
       color: #fff !important;
@@ -131,6 +136,68 @@
       display: inline-block;
       transition: all 0.3s var(--ease);
       box-shadow: 0 4px 12px rgba(108, 99, 255, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nav-auth-btn::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .nav-auth-btn:hover {
+      transform: translateY(-2px) scale(1.08);
+      box-shadow: 0 8px 24px rgba(108, 99, 255, 0.5);
+      background: rgba(108, 99, 255, 0.95) !important;
+    }
+
+    .nav-auth-btn:hover::before {
+      left: 100%;
+    }
+
+    /* ── UTILITY BUTTONS & INPUTS ─────────────────────────── */
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 22px;
+      border: none;
+      border-radius: var(--radius-m);
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 20px var(--accent-glow);
+      transition: all 0.3s var(--ease);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 32px rgba(108, 99, 255, 0.5);
+    }
+
+    .btn-primary:hover::before {
+      left: 100%;
     }
 
     /* ── LAYOUT MECHANICS ─────────────────────────────────── */
@@ -156,12 +223,17 @@
     }
 
     .chat-header { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 12px; 
       padding: 0.95rem 1.5rem; 
       border-bottom: 1px solid var(--border); 
       flex-shrink: 0;
     }
 
-    .channel-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; }
+    .chat-meta { display: flex; align-items: center; gap: 0.75rem; }
+    .channel-title { font-family: var(--font-display); font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
 
     .message-scroller { 
       flex: 1; 
@@ -170,133 +242,142 @@
       flex-direction: column; 
       gap: 1rem; 
       overflow-y: auto; 
+      -webkit-overflow-scrolling: touch; 
     }
 
-    /* ── INLINE MODERATION ACTION INTERFACES ──────────────── */
-    .msg-block { 
-      display: flex; 
-      gap: 1rem; 
-      align-items: flex-start; 
-      position: relative;
-      width: 100%;
-    }
-    
-    .msg-wrapper {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      width: 100%;
-    }
+    /* Chat Message Blocks */
+    .msg-block { display: flex; gap: 1rem; align-items: flex-start; transition: opacity 0.2s ease; position: relative; }
+    .msg-block.pending { opacity: 0.4; filter: brightness(0.8); }
 
-    .msg-actions-panel {
-      display: none;
-      gap: 6px;
-      margin-left: auto;
-      padding-left: 10px;
-    }
-
-    .msg-block:hover .msg-actions-panel {
-      display: flex;
-    }
-
-    .action-control-btn {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      cursor: pointer;
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-
-    .action-control-btn:hover {
-      color: var(--text);
-      border-color: var(--text-muted);
-    }
-    
-    .action-control-btn.delete-trigger:hover {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
-      border-color: rgba(239, 68, 68, 0.4);
-    }
-
-    /* Minimalist Pure CSS Asset Path Graphics (No Emojis) */
-    .icon-pencil {
-      width: 10px;
-      height: 10px;
-      border: 1.5px solid currentColor;
-      transform: rotate(-45deg);
-      position: relative;
-    }
-    
-    .icon-trash {
-      width: 12px;
-      height: 12px;
-      position: relative;
-      border: 1.5px solid currentColor;
-      border-top: none;
-      border-radius: 0 0 2px 2px;
-    }
-    .icon-trash::before {
-      content: '';
-      position: absolute;
-      top: -3px; left: -1.5px; right: -1.5px;
-      height: 1.5px;
-      background: currentColor;
-    }
-
-    /* ── PROFILE & ROLE INTERACTION TAGS ────────────────── */
     .msg-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--card); flex-shrink: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--accent); font-family: var(--font-display); font-weight: 800; }
-    .msg-content { width: 100%; }
-    .msg-top { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem; }
-    .msg-content h5 { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
-    .msg-content h5 span.msg-timestamp { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
-    .msg-content p { color: #cbd5e1; font-size: 0.95rem; line-height: 1.7; }
+    .msg-content { width: 100%; padding-right: 80px; }
+    .msg-top { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.35rem; }
+    .msg-content h5 { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; margin: 0; color: var(--text); }
+    .msg-content h5 span { font-size: 0.75rem; color: var(--text-muted); margin-left: 8px; font-weight: 500; }
+    .msg-content p { color: #cbd5e1; font-size: 0.95rem; line-height: 1.7; margin: 0; }
 
-    /* Custom Role Labels */
-    .tag-admin { color: #3b82f6; font-size: 0.72rem; background: rgba(59,130,246,0.12); padding: 1px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(59,130,246,0.2); text-transform: uppercase; }
-    .tag-owner { color: #f59e0b; font-size: 0.72rem; background: rgba(245,158,11,0.12); padding: 1px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(245,158,11,0.2); text-transform: uppercase; }
-    .tag-whisper { color: #a855f7; font-size: 0.72rem; background: rgba(168,85,247,0.12); padding: 1px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(168,85,247,0.2); text-transform: uppercase; }
-    .tag-invite { color: #6c63ff; font-size: 0.72rem; background: rgba(108,99,255,0.12); padding: 1px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(108,99,255,0.2); text-transform: uppercase; }
-
-    /* ── OMOGGLE SYSTEM NOTIFICATION CHANNELS ───────────── */
-    .invite-card {
-      background: #111226;
-      border: 1px solid rgba(108, 99, 255, 0.2);
-      border-radius: var(--radius-m);
-      padding: 1rem;
-      margin-top: 0.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      max-width: 440px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    }
-    .invite-status-text { font-size: 0.9rem; font-weight: 600; color: #e2e8f0; }
-    .invite-buttons { display: flex; gap: 0.6rem; }
+    /* ── STATIC MODERATION SYSTEM STYLES ──────────────────── */
+    .msg-controls-tray { position: absolute; right: 10px; top: 12px; display: flex; gap: 8px; align-items: center; }
     
-    .btn-accept { background: #10b981; color: white; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
-    .btn-accept:hover { background: #059669; }
-    .btn-decline { background: #ef4444; color: white; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
-    .btn-decline:hover { background: #dc2626; }
+    .action-control-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+    .action-control-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .action-control-btn.btn-delete-msg:hover { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.4); }
 
-    /* Input Mechanics */
-    .input-container { padding: 0 1.5rem 1.5rem; position: relative; flex-shrink: 0; }
+    /* Custom Image Handling Optimization Rule */
+    .tray-icon-img { width: 14px; height: 14px; object-fit: contain; pointer-events: none; }
+
+    /* Identity Badge Custom Styling Rule Strings */
+    .badge-admin { color: #3b82f6; font-size: 0.72rem; background: rgba(59,130,246,0.12); padding: 2px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(59,130,246,0.2); text-transform: uppercase; margin-left: 4px; }
+    .badge-owner { color: #f59e0b; font-size: 0.72rem; background: rgba(245,158,11,0.12); padding: 2px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(245,158,11,0.2); text-transform: uppercase; margin-left: 4px; }
+
+    /* Omoggle Inline Duel Card Notification Boxes */
+    .duel-card { background: #111224; border: 1px solid rgba(108, 99, 255, 0.2); border-radius: var(--radius-m); padding: 1rem; margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.75rem; max-width: 440px; }
+    .duel-card-msg { font-size: 0.9rem; color: #cbd5e1; font-weight: 500; }
+    .duel-card-actions { display: flex; gap: 8px; }
+    
+    .btn-duel-accept { background: #10b981; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: background 0.2s ease; }
+    .btn-duel-accept:hover { background: #059669; }
+    .btn-duel-decline { background: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: background 0.2s ease; }
+    .btn-duel-decline:hover { background: #dc2626; }
+
+    /* Message Input Container */
+    .input-container { 
+      padding: 0 1.5rem 1.5rem; 
+      position: relative; 
+      flex-shrink: 0; 
+    }
     .input-row { display: flex; gap: 0.75rem; align-items: center; }
-    .input-container .input-field { width: 100%; background: var(--surface); padding: 12px 16px; border-radius: var(--radius-m); border: 1px solid var(--border); color: var(--text); outline: none; font-size: 0.9rem; }
-    .input-container .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    
+    .input-container .input-field { 
+      width: 100%; 
+      background: var(--surface); 
+      padding: 12px 16px; 
+      border-radius: var(--radius-m); 
+      border: 1px solid var(--border); 
+      color: var(--text); 
+      outline: none;
+      font-size: 0.9rem;
+      transition: all 0.3s var(--ease);
+      touch-action: manipulation; 
+    }
+    
+    .input-container .input-field:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow), 0 0 20px rgba(108, 99, 255, 0.2);
+    }
+
     .send-btn { min-width: 130px; }
-    .cooldown-text { color: #ef4444; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; padding-left: 1rem; visibility: hidden; height: 1.2rem; }
+
+    /* Cooldown Banner Styling */
+    .cooldown-text {
+      color: #64748b;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      padding-left: 1rem;
+      visibility: hidden;
+      height: 1.2rem;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .send-btn:disabled {
+      opacity: 0.4 !important;
+      filter: brightness(0.5) !important;
+      pointer-events: none !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+      transform: none !important;
+      transition: none !important;
+    }
 
     /* Autocomplete Box */
-    .suggestions-popover { position: absolute; bottom: calc(100% - 4px); left: 1.5rem; right: 1.5rem; background: #111224; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); max-height: 220px; overflow-y: auto; z-index: 10; display: none; padding: 6px 0; }
-    .suggestion-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; color: #cbd5e1; cursor: pointer; font-size: 0.9rem; }
-    .suggestion-item:hover, .suggestion-item.selected { background: #232442; color: #fff; }
+    .suggestions-popover {
+      position: absolute;
+      bottom: calc(100% - 4px);
+      left: 1.5rem;
+      right: 1.5rem;
+      background: #111224;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+      padding: 6px 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px; 
+      color: #cbd5e1;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.15s ease;
+    }
+    .suggestion-item:hover, .suggestion-item.selected {
+      background: #232442;
+      color: #fff;
+    }
+    .suggestion-item .item-icon { font-weight: bold; color: #a855f7; }
     .suggestion-item .item-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; color: #fff; }
+
+    /* ── ANIMATIONS ───────────────────────────────────────── */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    header { animation: slideInLeft 600ms var(--ease) both; }
+    .chat-layout { animation: fadeUp 480ms var(--ease) both; }
+    .chat-main { animation: slideInRight 500ms var(--ease) both; }
+
+    @media (prefers-reduced-motion: reduce) {
+      header, .chat-layout, .chat-main, .cooldown-text { animation: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -321,7 +402,9 @@
   <main class="chat-layout">
     <section class="chat-main">
       <div class="chat-header">
-        <div class="channel-title">Carson Chat</div>
+        <div class="chat-meta">
+          <div class="channel-title"><span></span><strong>Carson Chat</strong></div>
+        </div>
       </div>
       
       <div class="message-scroller" id="message-scroller"></div>
@@ -331,7 +414,7 @@
         <div id="cooldown-timer-text" class="cooldown-text"></div>
         
         <div class="input-row">
-          <input id="message-input" type="text" class="input-field" placeholder="Type a message or use commands..." autocomplete="off">
+          <input id="message-input" type="text" class="input-field" placeholder="Type a message or / for a command..." autocomplete="off">
           <button id="send-message-btn" class="btn-primary send-btn">Send</button>
         </div>
       </div>
@@ -360,6 +443,7 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
+/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
   authDomain: "carson-games.firebaseapp.com",
@@ -373,13 +457,12 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Global Command Configurations
-const ALL_COMMANDS = [
-  { name: "/w", desc: "Whisper privately to other users", minRole: "user" },
-  { name: "/omoggle", desc: "Invite someone to a private Omoggle duel", minRole: "user" },
-  { name: "/mute", desc: "Mute user (minutes). /mute @user 60", minRole: "admin" },
-  { name: "/admin", desc: "Promote user to Admin", minRole: "owner" },
-  { name: "/headadmin", desc: "Promote user to Head Admin (Owner)", minRole: "owner" }
+const EX_COMMANDS = [
+  { name: "/w", desc: "Whisper privately to other users" },
+  { name: "/omoggle", desc: "Invite a user to a private Omoggle duel session" },
+  { name: "/mute", desc: "Mute a specific chat participant. Syntax: /mute @user mins" },
+  { name: "/admin", desc: "Elevate user parameters to Room Admin" },
+  { name: "/headadmin", desc: "Elevate user parameters to Head Admin (Owner)" }
 ];
 
 let currentUser = null;
@@ -402,13 +485,15 @@ let activeSuggestionIndex = 0;
 let currentMentionTriggerIdx = -1; 
 let currentMentionType = ""; 
 
+/* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
   if (auth.currentUser && !initialSnapshotReceived) {
+    console.warn("Failsafe triggered: Chat channel frozen. Forcing reload...");
     window.location.reload();
   }
 }, 2000);
 
-/* AUTH LAYER AND ROLE SYNCING */
+/* AUTH CHECK & SYNC USER ROLES / MUTE STATE */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.replace("../login/");
@@ -417,11 +502,10 @@ onAuthStateChanged(auth, async (user) => {
 
   currentUser = user;
   const userRef = doc(db, "users", user.uid);
-  
-  // Create or sync real-time user permissions
-  onSnapshot(userRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data();
+
+  onSnapshot(userRef, (snap) => {
+    if (snap.exists()) {
+      const data = snap.data();
       currentUsername = data.username || user.email.split("@")[0];
       currentUserRole = data.role || "user";
       currentUserMutedUntil = data.mutedUntil || 0;
@@ -441,9 +525,11 @@ onAuthStateChanged(auth, async (user) => {
   addLogout();
 });
 
+/* INLINE TIMER HANDLER */
 function startCooldownTimer() {
   const btn = document.getElementById("send-message-btn");
   const textContainer = document.getElementById("cooldown-timer-text");
+
   btn.disabled = true;
   textContainer.style.visibility = "visible";
 
@@ -455,15 +541,18 @@ function startCooldownTimer() {
       clearInterval(countdownInterval);
       btn.disabled = false;
       textContainer.style.visibility = "hidden";
+      textContainer.textContent = "";
     } else {
       const secondsLeft = Math.ceil(remaining / 1000);
       textContainer.textContent = `You must wait ${secondsLeft} more second${secondsLeft > 1 ? 's' : ''} to send a message`;
     }
   };
+
+  updateDisplay();
   const countdownInterval = setInterval(updateDisplay, 100);
 }
 
-/* CHAT SETUP ENGINE */
+/* CHAT SETUP */
 async function startChat(user) {
   const input = document.getElementById("message-input");
   const btn = document.getElementById("send-message-btn");
@@ -477,10 +566,9 @@ async function startChat(user) {
     let textToSend = input.value.trim();
     if (!textToSend) return;
     
-    // Check if muted
-    if (Date.now() < currentUserMutedUntil) {
-      const remainingMinutes = Math.ceil((currentUserMutedUntil - Date.now()) / 60000);
-      alert(`You are muted. Remaining time: ${remainingMinutes} minute(s).`);
+    if (currentUserMutedUntil && Date.now() < currentUserMutedUntil) {
+      const minsRemaining = Math.ceil((currentUserMutedUntil - Date.now()) / 60000);
+      alert(`You are currently muted. You can participate again in ${minsRemaining} minute(s).`);
       return;
     }
 
@@ -489,43 +577,43 @@ async function startChat(user) {
 
     input.value = "";
     lastMessageTime = now;
+    
     startCooldownTimer();
+    closePopover();
 
-    // Command Parsing Vectors
     if (textToSend.startsWith("/")) {
-      const tokens = textToSend.split(/\s+/);
-      const cmd = tokens[0].toLowerCase();
+      const segments = textToSend.split(/\s+/);
+      const commandKey = segments[0].toLowerCase();
 
-      // Moderate Execution Blocks
-      if (cmd === "/mute" && (currentUserRole === "admin" || currentUserRole === "owner")) {
-        const targetName = tokens[1]?.replace("@", "");
-        const minutes = parseInt(tokens[2]);
-        if (!targetName || isNaN(minutes)) { alert("Usage: /mute @username minutes"); return; }
+      if (commandKey === "/mute" && (currentUserRole === "admin" || currentUserRole === "owner")) {
+        const parsedTargetName = segments[1]?.replace("@", "");
+        const minutesValue = parseInt(segments[2]);
+        if (!parsedTargetName || isNaN(minutesValue)) { alert("Syntax: /mute @username minutes"); return; }
         
-        const matched = localUsersCache.find(u => u.username.toLowerCase() === targetName.toLowerCase());
-        if (matched) {
-          await updateDoc(doc(db, "users", matched.id), { mutedUntil: Date.now() + (minutes * 60 * 1000) });
-          alert(`Muted ${targetName} for ${minutes} minutes.`);
-        } else { alert("User not located in local room history."); }
+        const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
+        if (targetCachedProfile) {
+          await updateDoc(doc(db, "users", targetCachedProfile.id), { mutedUntil: Date.now() + (minutesValue * 60 * 1000) });
+          alert(`Muted user @${parsedTargetName} for ${minutesValue} minutes.`);
+        } else { alert("Target not found inside loaded chat history registry."); }
         return;
       }
 
-      if (cmd === "/admin" && currentUserRole === "owner") {
-        const targetName = tokens[1]?.replace("@", "");
-        const matched = localUsersCache.find(u => u.username.toLowerCase() === targetName.toLowerCase());
-        if (matched) {
-          await updateDoc(doc(db, "users", matched.id), { role: "admin" });
-          alert(`Promoted ${targetName} to Admin.`);
+      if (commandKey === "/admin" && currentUserRole === "owner") {
+        const parsedTargetName = segments[1]?.replace("@", "");
+        const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
+        if (targetCachedProfile) {
+          await updateDoc(doc(db, "users", targetCachedProfile.id), { role: "admin" });
+          alert(`Promoted @${parsedTargetName} to Admin privileges.`);
         }
         return;
       }
 
-      if (cmd === "/headadmin" && currentUserRole === "owner") {
-        const targetName = tokens[1]?.replace("@", "");
-        const matched = localUsersCache.find(u => u.username.toLowerCase() === targetName.toLowerCase());
-        if (matched) {
-          await updateDoc(doc(db, "users", matched.id), { role: "owner" });
-          alert(`Promoted ${targetName} to Head Admin (Owner).`);
+      if (commandKey === "/headadmin" && currentUserRole === "owner") {
+        const parsedTargetName = segments[1]?.replace("@", "");
+        const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
+        if (targetCachedProfile) {
+          await updateDoc(doc(db, "users", targetCachedProfile.id), { role: "owner" });
+          alert(`Promoted @${parsedTargetName} to Head Admin (Owner) privileges.`);
         }
         return;
       }
@@ -543,7 +631,9 @@ async function startChat(user) {
         targetUsernames.push(parts[i].substring(1).toLowerCase());
         i++;
       }
-      parsedText = parts.slice(i).join(" ");
+      if (targetUsernames.length > 0) {
+        parsedText = parts.slice(i).join(" ");
+      }
     }
 
     const clientSideId = "msg-" + Date.now() + Math.random().toString(36).substring(2);
@@ -568,14 +658,19 @@ async function startChat(user) {
     try {
       if (targetUsernames.length > 0) {
         let participantIds = [user.uid];
+        
         targetUsernames.forEach(uname => {
           const matchedUser = localUsersCache.find(u => u.username.toLowerCase() === uname);
-          if (matchedUser && !participantIds.includes(matchedUser.id)) participantIds.push(matchedUser.id);
+          if (matchedUser && !participantIds.includes(matchedUser.id)) {
+            participantIds.push(matchedUser.id);
+          }
         });
 
-        if (participantIds.length === 1) throw new Error("Recipient not found in room memory cache.");
+        if (participantIds.length === 1) {
+          throw new Error("No valid recipients found with those usernames in your local cache.");
+        }
 
-        const whisperPayload = {
+        const challengePayload = {
           text: isOmoggleCommand && !parsedText ? "Do you want to duel in Omoggle?" : parsedText,
           username: currentUsername,
           senderId: user.uid,
@@ -587,11 +682,11 @@ async function startChat(user) {
         };
 
         if (isOmoggleCommand) {
-          whisperPayload.isOmoggleInvite = true;
-          whisperPayload.inviteStatus = "pending";
+          challengePayload.isOmoggleInvite = true;
+          challengePayload.inviteStatus = "pending";
         }
 
-        await addDoc(collection(db, "whispers"), whisperPayload);
+        await addDoc(collection(db, "whispers"), challengePayload);
       } else {
         await addDoc(collection(db, "messages"), {
           text: textToSend,
@@ -604,31 +699,47 @@ async function startChat(user) {
         });
       }
     } catch (err) {
+      console.error("Error sending message:", err);
+      alert(err.message || "Failed to deliver message.");
       localPendingQueue = localPendingQueue.filter(m => m.clientSideId !== clientSideId);
       renderMessages();
     }
   };
 }
 
+/* ZERO-READ DYNAMIC LOCAL CACHE ENGINE */
 function updateAutocompleteCacheFromLoadedMessages() {
   const uniqueUsers = new Map();
   let allMessages = [...dbPublicMessages, ...dbPrivateMessages];
+
   allMessages.forEach(msg => {
     if (msg.userId && msg.username) {
-      uniqueUsers.set(msg.userId, { id: msg.userId, username: msg.username, avatar: msg.avatar || msg.username[0].toUpperCase() });
+      uniqueUsers.set(msg.userId, {
+        id: msg.userId,
+        username: msg.username,
+        avatar: msg.avatar || msg.username[0].toUpperCase()
+      });
     } else if (msg.senderId && msg.username) {
-      uniqueUsers.set(msg.senderId, { id: msg.senderId, username: msg.username, avatar: msg.avatar || msg.username[0].toUpperCase() });
+      uniqueUsers.set(msg.senderId, {
+        id: msg.senderId,
+        username: msg.username,
+        avatar: msg.avatar || msg.username[0].toUpperCase()
+      });
     }
   });
+
   localUsersCache = Array.from(uniqueUsers.values());
 }
 
-/* SYNC STREAM CHANNELS */
+/* REAL-TIME STREAM LISTENERS */
 function listenForNewMessages(user) {
   const publicQ = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(20));
   onSnapshot(publicQ, (snapshot) => {
     initialSnapshotReceived = true; 
     dbPublicMessages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isWhisper: false }));
+    if (!lastLoadedTimestamp && snapshot.docs.length > 0) {
+      lastLoadedTimestamp = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
+    }
     renderMessages();
   });
 
@@ -637,11 +748,10 @@ function listenForNewMessages(user) {
     dbPrivateMessages = snapshot.docs.map(doc => {
       const data = doc.data();
       
-      // Real-time private match redirection engine
       if (data.isOmoggleInvite && data.inviteStatus === "accepted") {
         setTimeout(() => {
-          const myRoleType = currentUser.uid === data.senderId ? "host" : "guest";
-          window.location.href = `../omoggle/?room=${doc.id}&role=${myRoleType}`;
+          const myAssignedRole = currentUser.uid === data.senderId ? "host" : "guest";
+          window.location.href = `../omoggle/?room=${doc.id}&role=${myAssignedRole}`;
         }, 1000);
       }
       return { ...data, id: doc.id, isWhisper: true };
@@ -655,6 +765,7 @@ function renderMessages() {
   const isPinnedToBottom = scroller.scrollHeight - scroller.clientHeight <= scroller.scrollTop + 30;
 
   updateAutocompleteCacheFromLoadedMessages();
+
   scroller.innerHTML = "";
 
   let allMessages = [...dbPublicMessages, ...dbPrivateMessages];
@@ -675,116 +786,114 @@ function renderMessages() {
   }
 }
 
-/* RENDERING INTERACTION BLOCKS */
-function displayMessage(scroller, msgData) {
+function displayMessage(scroller, msgData, returnHTML = false) {
   const div = document.createElement("div");
   div.className = "msg-block" + (msgData.isPending ? " pending" : "");
+  if(msgData.clientSideId) div.id = msgData.clientSideId;
   
   const time = msgData.timestamp ? new Date(msgData.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending...";
   
-  // Custom Ordered Permission Label Strings
-  let roleLabelHTML = "";
-  if (msgData.role === "admin") roleLabelHTML = `<span class="tag-admin">Admin</span>`;
-  if (msgData.role === "owner") roleLabelHTML = `<span class="tag-owner">Owner</span>`;
+  let statusBadgeHTML = "";
+  if (msgData.role === "admin") statusBadgeHTML = `<span class="badge-admin">Admin</span>`;
+  if (msgData.role === "owner") statusBadgeHTML = `<span class="badge-owner">Owner</span>`;
   
-  const whisperLabelHTML = msgData.isWhisper ? `<span class="tag-whisper">Whisper</span>` : "";
+  const whisperTag = msgData.isWhisper ? `<span style="color: #a855f7; font-size: 0.75rem; margin-left: 8px; background: rgba(168,85,247,0.12); padding: 2px 7px; border-radius: 99px; font-weight: 600; border: 1px solid rgba(168,85,247,0.2);">Whisper</span>` : "";
 
-  let contentBodyHTML = "";
+  let textContent = escapeHtml(msgData.text);
+  textContent = textContent.replace(/@([a-zA-Z0-9_\-]+)/g, '<span style="color: #3b82f6; background: rgba(59,130,246,0.15); padding: 1px 5px; border-radius: 4px; font-weight: 600; border: 1px solid rgba(59,130,246,0.2);">@$1</span>');
+
+  let layoutStructuralString = "";
 
   if (msgData.isOmoggleInvite) {
+    let internalDuelPanelHTML = "";
     if (msgData.inviteStatus === "pending") {
       if (currentUser && currentUser.uid !== msgData.senderId) {
-        // Recipient Private View Frame (Masked as System Notification)
-        contentBodyHTML = `
-          <div class="invite-card">
-            <span class="invite-status-text">Challenge: Do you want to duel in Omoggle?</span>
-            <div class="invite-buttons">
-              <button class="btn-accept">Accept</button>
-              <button class="btn-decline">Decline</button>
+        internalDuelPanelHTML = `
+          <div class="duel-card">
+            <span class="duel-card-msg">Do you want to duel in Omoggle?</span>
+            <div class="duel-card-actions">
+              <button class="btn-duel-accept">Accept</button>
+              <button class="btn-duel-decline">Decline</button>
             </div>
           </div>
         `;
       } else {
-        // Sender Private View Frame
-        contentBodyHTML = `
-          <div class="invite-card">
-            <span class="invite-status-text">Sent Omoggle duel request to your opponent (Pending...)</span>
+        internalDuelPanelHTML = `
+          <div class="duel-card">
+            <span class="duel-card-msg">Sent Omoggle duel request to your opponent (Pending...)</span>
           </div>
         `;
       }
     } else if (msgData.inviteStatus === "accepted") {
-      contentBodyHTML = `<div class="invite-card" style="border-color:#10b981;"><span class="invite-status-text" style="color:#10b981;">Duel accepted! Redirecting...</span></div>`;
+      internalDuelPanelHTML = `<div class="duel-card" style="border-color:#10b981;"><span class="duel-card-msg" style="color:#10b981;">Duel accepted! Redirecting...</span></div>`;
     } else {
-      contentBodyHTML = `<div class="invite-card" style="border-color:#ef4444;"><span class="invite-status-text" style="color:#ef4444;">Challenge declined.</span></div>`;
+      internalDuelPanelHTML = `<div class="duel-card" style="border-color:#ef4444;"><span class="duel-card-msg" style="color:#ef4444;">Challenge declined.</span></div>`;
     }
 
-    // Completely replace profile attributes with the automated System Server identity
-    div.innerHTML = `
-      <div class="msg-wrapper">
-        <div class="msg-avatar" style="background:#ef4444; color:white;">S</div>
-        <div class="msg-content">
-          <div class="msg-top">
-            <h5>Server <span class="msg-timestamp">${time}</span> <span class="tag-invite">Omoggle Duel</span></h5>
-          </div>
-          ${contentBodyHTML}
+    layoutStructuralString = `
+      <div class="msg-avatar" style="background: #242549; color: #fff;">S</div>
+      <div class="msg-content">
+        <div class="msg-top">
+          <h5>Server <span>${time}</span></h5>
         </div>
+        <p style="color:#6c63ff; font-weight:600;">@${msgData.username} sent you a duel request on Omoggle!</p>
+        ${internalDuelPanelHTML}
       </div>
     `;
   } else {
-    // Standard User Chat Stream Template Generation Frame
-    let textContent = escapeHtml(msgData.text);
-    textContent = textContent.replace(/@([a-zA-Z0-9_\-]+)/g, '<span style="color:#3b82f6; font-weight:600;">@$1</span>');
-    
-    // Check Mutation Authorizations
-    let operationsPanelHTML = "";
+    let staticControlsTrayHTML = "";
     if (currentUser && (currentUser.uid === msgData.userId || currentUser.uid === msgData.senderId || currentUserRole === "admin" || currentUserRole === "owner")) {
-      operationsPanelHTML = `
-        <div class="msg-actions-panel">
-          <button class="action-control-btn edit-trigger" title="Edit Content"><div class="icon-pencil"></div></button>
-          <button class="action-control-btn delete-trigger" title="Remove Message"><div class="icon-trash"></div></button>
+      staticControlsTrayHTML = `
+        <div class="msg-controls-tray">
+          <button class="action-control-btn btn-edit-msg" title="Modify Context">
+            <img src="../assets/chat-pencil.svg" alt="Edit" class="tray-icon-img">
+          </button>
+          <button class="action-control-btn btn-delete-msg" title="Purge Record">
+            <img src="../assets/chat-trash.svg" alt="Delete" class="tray-icon-img">
+          </button>
         </div>
       `;
     }
 
-    div.innerHTML = `
-      <div class="msg-wrapper">
-        <div class="msg-avatar" style="background: linear-gradient(135deg, ${getGradient(msgData.username)});">${msgData.avatar || msgData.username[0].toUpperCase()}</div>
-        <div class="msg-content">
-          <div class="msg-top">
-            <h5>${msgData.username} <span class="msg-timestamp">${time}</span> ${roleLabelHTML} ${whisperLabelHTML}</h5>
-          </div>
-          <p class="text-payload-string">${textContent}</p>
+    layoutStructuralString = `
+      <div class="msg-avatar" style="background: linear-gradient(135deg, ${getGradient(msgData.username)});">${msgData.avatar || msgData.username[0].toUpperCase()}</div>
+      <div class="msg-content">
+        <div class="msg-top">
+          <h5>${msgData.username} <span>${time}</span> ${statusBadgeHTML} ${whisperTag}</h5>
         </div>
-        ${operationsPanelHTML}
+        <p>${textContent}</p>
       </div>
+      ${staticControlsTrayHTML}
     `;
   }
 
-  // Hook Interactive Elements
+  div.innerHTML = layoutStructuralString;
+  if (returnHTML) return div.innerHTML;
+
   if (msgData.isOmoggleInvite && msgData.inviteStatus === "pending" && currentUser && currentUser.uid !== msgData.senderId) {
-    const acc = div.querySelector(".btn-accept");
-    const dec = div.querySelector(".btn-decline");
-    if (acc) acc.onclick = () => setDoc(doc(db, "whispers", msgData.id), { inviteStatus: "accepted" }, { merge: true });
-    if (dec) dec.onclick = () => setDoc(doc(db, "whispers", msgData.id), { inviteStatus: "declined" }, { merge: true });
+    const accBtn = div.querySelector(".btn-duel-accept");
+    const decBtn = div.querySelector(".btn-duel-decline");
+    if (accBtn) accBtn.onclick = () => updateDoc(doc(db, "whispers", msgData.id), { inviteStatus: "accepted" });
+    if (decBtn) decBtn.onclick = () => updateDoc(doc(db, "whispers", msgData.id), { inviteStatus: "declined" });
   }
 
-  // Mutation Event Listeners
-  const editBtn = div.querySelector(".edit-trigger");
-  const deleteBtn = div.querySelector(".delete-trigger");
-  const targetCollection = msgData.isWhisper ? "whispers" : "messages";
+  const editBtn = div.querySelector(".btn-edit-msg");
+  const deleteBtn = div.querySelector(".btn-delete-msg");
+  const dataCollectionTargetStr = msgData.isWhisper ? "whispers" : "messages";
 
   if (editBtn) {
     editBtn.onclick = async () => {
-      const newUpdateString = prompt("Modify message text context:", msgData.text);
-      if (newUpdateString && newUpdateString.trim() !== "") {
-        await setDoc(doc(db, targetCollection, msgData.id), { text: newUpdateString.trim() }, { merge: true });
+      const revisedTextPayload = prompt("Update message content parameters:", msgData.text);
+      if (revisedTextPayload && revisedTextPayload.trim() !== "") {
+        await updateDoc(doc(db, dataCollectionTargetStr, msgData.id), { text: revisedTextPayload.trim() });
       }
     };
   }
+
   if (deleteBtn) {
     deleteBtn.onclick = async () => {
-      if (confirm("Permanently erase this chat document from the stream?")) {
-        await deleteDoc(doc(db, targetCollection, msgData.id));
+      if (confirm("Are you sure you want to permanently erase this message?")) {
+        await deleteDoc(doc(db, dataCollectionTargetStr, msgData.id));
       }
     };
   }
@@ -792,35 +901,82 @@ function displayMessage(scroller, msgData) {
   scroller.appendChild(div);
 }
 
-/* AUTOCOMPLETE PREDICTION MECHANICS */
+/* AUTOCOMPLETE NAVIGATION ENGINE */
 function setupAutocompleteEngine(input) {
   const popover = document.getElementById("suggestions-popover");
 
   input.addEventListener("input", () => {
     const val = input.value;
+    const selectionStart = input.selectionStart;
+    
     if (val === "/") {
-      // Role Filtering Command Menu Items
-      const authorizedCmds = ALL_COMMANDS.filter(c => {
-        if (c.minRole === "owner") return currentUserRole === "owner";
-        if (c.minRole === "admin") return currentUserRole === "admin" || currentUserRole === "owner";
+      const clearCommands = EX_COMMANDS.filter(c => {
+        if (c.name === "/mute") return currentUserRole === "admin" || currentUserRole === "owner";
+        if (c.name === "/admin" || c.name === "/headadmin") return currentUserRole === "owner";
         return true;
       });
-      showCommands(authorizedCmds);
+      showCommands(clearCommands);
       return;
     }
 
-    const words = val.split(" ");
-    const currentWord = words[words.length - 1];
+    const textBeforeCursor = val.substring(0, selectionStart);
+    const words = textBeforeCursor.split(" ");
+    const currentWordIdx = words.length - 1;
+    const currentWord = words[currentWordIdx];
+    const wordStartIdx = textBeforeCursor.lastIndexOf(currentWord);
 
-    if ((words[0] === "/w" || words[0] === "/omoggle") && currentWord.startsWith("@")) {
-      const searchStr = currentWord.substring(1).toLowerCase();
-      const filtered = localUsersCache.filter(u => u.username.toLowerCase().startsWith(searchStr) && u.username.toLowerCase() !== currentUsername.toLowerCase());
-      if (filtered.length > 0) {
-        currentMentionTriggerIdx = val.lastIndexOf(currentWord);
-        showMentions(filtered, words[0]);
-        return;
+    const baseCommandContext = words[0];
+    if (baseCommandContext === "/w" || baseCommandContext === "/omoggle") {
+      let isTargetingPhase = true;
+      for (let i = 1; i < currentWordIdx; i++) {
+        if (!words[i].startsWith("@")) {
+          isTargetingPhase = false;
+          break;
+        }
+      }
+
+      if (isTargetingPhase) {
+        let searchStr = currentWord;
+        if (searchStr.startsWith("@")) {
+          searchStr = searchStr.substring(1);
+        }
+
+        if (currentWord === baseCommandContext || currentWord === "") {
+          searchStr = "";
+        }
+
+        const cleanSearch = searchStr.toLowerCase();
+        const filtered = localUsersCache.filter(u => 
+          u.username.toLowerCase().startsWith(cleanSearch) && 
+          u.username.toLowerCase() !== currentUsername.toLowerCase()
+        );
+
+        if (filtered.length > 0) {
+          currentMentionTriggerIdx = wordStartIdx;
+          showMentions(filtered, currentWord === baseCommandContext ? "command-inline" : "whisper-target");
+          return;
+        }
       }
     }
+
+    const lastAtIdx = val.lastIndexOf("@", selectionStart - 1);
+    if (lastAtIdx !== -1 && (lastAtIdx === 0 || /\s/.test(val[lastAtIdx - 1]))) {
+      const searchStr = val.substring(lastAtIdx + 1, selectionStart).toLowerCase();
+      
+      if (!/\s/.test(searchStr)) {
+        currentMentionTriggerIdx = lastAtIdx;
+        const filtered = localUsersCache.filter(u => 
+          u.username.toLowerCase().startsWith(searchStr) && 
+          u.username.toLowerCase() !== currentUsername.toLowerCase()
+        );
+        
+        if (filtered.length > 0) {
+          showMentions(filtered, "general-mention");
+          return;
+        }
+      }
+    }
+
     closePopover();
   });
 
@@ -832,51 +988,97 @@ function setupAutocompleteEngine(input) {
         items[activeSuggestionIndex].classList.remove("selected");
         activeSuggestionIndex = (activeSuggestionIndex + 1) % items.length;
         items[activeSuggestionIndex].classList.add("selected");
+        items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         items[activeSuggestionIndex].classList.remove("selected");
         activeSuggestionIndex = (activeSuggestionIndex - 1 + items.length) % items.length;
         items[activeSuggestionIndex].classList.add("selected");
+        items[activeSuggestionIndex].scrollIntoView({ block: "nearest" });
       } else if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
         items[activeSuggestionIndex].click();
       } else if (e.key === "Escape") {
         closePopover();
       }
-    } else if (e.key === "Enter") {
+    } else if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       document.getElementById("send-message-btn").click();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target !== input && e.target !== popover && !popover.contains(e.target)) {
+      closePopover();
     }
   });
 }
 
 function showCommands(cmds) {
   const popover = document.getElementById("suggestions-popover");
-  activeSuggestionIndex = 0; popover.innerHTML = "";
+  activeSuggestionIndex = 0;
+  popover.innerHTML = "";
+  
   cmds.forEach((c, idx) => {
     const div = document.createElement("div");
     div.className = "suggestion-item" + (idx === 0 ? " selected" : "");
-    div.innerHTML = `<span>/</span><strong>${c.name}</strong> &nbsp;<span style="color:var(--text-muted); font-size:0.8rem;">${c.desc}</span>`;
-    div.onclick = () => {
+    div.innerHTML = `<span class="item-icon">/</span> <strong>${c.name}</strong> &nbsp; <span style="color:var(--text-muted); font-size:0.8rem;">${c.desc}</span>`;
+    
+    div.onclick = (e) => {
+      e.stopPropagation(); 
       const input = document.getElementById("message-input");
-      input.value = c.name + " "; input.focus();
+      input.value = c.name + " ";
+      input.focus();
+      input.selectionStart = input.selectionEnd = input.value.length;
       closePopover();
+      input.dispatchEvent(new Event("input")); 
     };
     popover.appendChild(div);
   });
   popover.style.display = "block";
 }
 
-function showMentions(users, cmdType) {
+function showMentions(users, type) {
+  currentMentionType = type;
   const popover = document.getElementById("suggestions-popover");
-  activeSuggestionIndex = 0; popover.innerHTML = "";
+  activeSuggestionIndex = 0;
+  popover.innerHTML = "";
+
   users.forEach((u, idx) => {
     const div = document.createElement("div");
     div.className = "suggestion-item" + (idx === 0 ? " selected" : "");
-    div.innerHTML = `<div class="item-avatar" style="background:linear-gradient(135deg, ${getGradient(u.username)}">${u.avatar}</div><strong>@${u.username}</strong>`;
-    div.onclick = () => {
+    div.innerHTML = `
+      <div class="item-avatar" style="background: linear-gradient(135deg, ${getGradient(u.username)});">${u.avatar}</div>
+      <strong>@${u.username}</strong>
+    `;
+    
+    div.onclick = (e) => {
+      e.stopPropagation(); 
       const input = document.getElementById("message-input");
-      input.value = cmdType + " @" + u.username + " "; input.focus();
+      const currentVal = input.value;
+      let newCursorPos = 0;
+
+      const routingContextCmdStr = currentVal.startsWith("/omoggle") ? "/omoggle" : "/w";
+
+      if (currentMentionType === "command-inline") {
+        input.value = routingContextCmdStr + " @" + u.username + " ";
+        newCursorPos = input.value.length;
+      } else if (currentMentionType === "whisper-target") {
+        const beforeWord = currentVal.substring(0, currentMentionTriggerIdx);
+        let spaceAfter = currentVal.indexOf(" ", currentMentionTriggerIdx);
+        let afterWord = spaceAfter !== -1 ? currentVal.substring(spaceAfter) : "";
+        input.value = beforeWord + "@" + u.username + (afterWord ? afterWord : " ");
+        newCursorPos = (beforeWord + "@" + u.username + " ").length;
+      } else {
+        const beforeTrigger = currentVal.substring(0, currentMentionTriggerIdx);
+        let spaceAfter = currentVal.indexOf(" ", currentMentionTriggerIdx);
+        let afterWord = spaceAfter !== -1 ? currentVal.substring(spaceAfter) : " ";
+        input.value = beforeTrigger + "@" + u.username + (afterWord.startsWith(" ") ? afterWord : " " + afterWord);
+        newCursorPos = (beforeTrigger + "@" + u.username + " ").length;
+      }
+
+      input.focus();
+      input.selectionStart = input.selectionEnd = newCursorPos;
       closePopover();
     };
     popover.appendChild(div);
@@ -887,26 +1089,51 @@ function showMentions(users, cmdType) {
 function closePopover() {
   const popover = document.getElementById("suggestions-popover");
   popover.style.display = "none";
+  popover.innerHTML = "";
 }
 
+/* HISTORICAL PAGINATION INTERACTION TRACKER */
 async function handleScrollPagination() {
   const scroller = document.getElementById("message-scroller");
+  
   if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp) {
     isLoadingMore = true;
-    const initialHeight = scroller.scrollHeight;
+
+    const loaderBanner = document.createElement("div");
+    loaderBanner.id = "history-loading-banner";
+    loaderBanner.style.cssText = "text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; padding: 10px 0;";
+    loaderBanner.textContent = "Getting more messages...";
+    scroller.insertBefore(loaderBanner, scroller.firstChild);
+
+    const initialScrollHeight = scroller.scrollHeight;
+
     try {
       const olderQuery = query(collection(db, "messages"), orderBy("timestamp", "desc"), startAfter(lastLoadedTimestamp), limit(20));
-      const snapshot = await getDocs(olderQuery);
-      if (snapshot.docs.length > 0) {
-        lastLoadedTimestamp = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
-        snapshot.docs.reverse().forEach(doc => {
+      const olderSnapshot = await getDocs(olderQuery);
+      
+      const existingBanner = document.getElementById("history-loading-banner");
+      if (existingBanner) existingBanner.remove();
+
+      if (olderSnapshot.docs.length > 0) {
+        lastLoadedTimestamp = olderSnapshot.docs[olderSnapshot.docs.length - 1].data().timestamp;
+        
+        const olderMessages = olderSnapshot.docs.reverse();
+        const fragment = document.createDocumentFragment();
+        
+        olderMessages.forEach(doc => {
           const div = document.createElement("div");
-          displayMessage(div, { ...doc.data(), id: doc.id, isWhisper: false });
-          scroller.insertBefore(div.firstChild, scroller.firstChild);
+          div.innerHTML = displayMessage(null, { ...doc.data(), isWhisper: false }, true);
+          fragment.appendChild(div);
         });
-        scroller.scrollTop = scroller.scrollHeight - initialHeight;
+        
+        scroller.insertBefore(fragment, scroller.firstChild);
+        scroller.scrollTop = scroller.scrollHeight - initialScrollHeight;
       }
-    } catch (e) {}
+    } catch (err) {
+      console.error("Error loading older messages:", err);
+      const existingBanner = document.getElementById("history-loading-banner");
+      if (existingBanner) existingBanner.remove();
+    }
     isLoadingMore = false;
   }
 }
@@ -914,7 +1141,9 @@ async function handleScrollPagination() {
 function getGradient(username) {
   const colors = ["#3b82f6, #7c3aed", "#f97316, #ec4899", "#06b6d4, #0891b2", "#10b981, #059669", "#f59e0b, #d97706"];
   let hash = 0;
-  for (let i = 0; i < username.length; i++) hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
   return colors[Math.abs(hash) % colors.length];
 }
 
@@ -925,12 +1154,18 @@ function escapeHtml(text) {
 
 function addLogout() {
   const container = document.getElementById('auth-button-container');
-  if (!container || document.getElementById("logout-btn")) return;
+  if (!container) return;
   const a = document.createElement("a");
-  a.textContent = "Logout"; a.href = "#"; a.className = "nav-auth-btn"; a.id = "logout-btn";
+  a.textContent = "Logout";
+  a.href = "#";
+  a.className = "nav-auth-btn";
+  a.id = "logout-btn";
   a.onclick = async (e) => {
-    e.preventDefault(); await signOut(auth); window.location.href = "../login/";
+    e.preventDefault();
+    await signOut(auth);
+    window.location.href = "../login/";
   };
+  container.innerHTML = '';
   container.appendChild(a);
 }
 </script>
