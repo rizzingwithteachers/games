@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Carson Games - Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ── THEME CONFIGURATION ──────────────────────────────── */
@@ -264,7 +264,8 @@
     .action-control-btn.btn-delete-msg:hover { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.4); }
 
     /* Custom Image Handling Optimization Rule Matrix */
-    .tray-icon-img { width: 14px; height: 14px; object-fit: contain; pointer-events: none; }
+    .tray-icon-img { width: 14px; height: 14px; object-fit: contain; pointer-events: none; opacity: 0.8; transition: opacity 0.2s var(--ease); }
+    .action-control-btn:hover .tray-icon-img { opacity: 1; }
 
     /* Identity Badge Custom Styling Rules */
     .badge-admin { color: #3b82f6; font-size: 0.72rem; background: rgba(59,130,246,0.12); padding: 2px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(59,130,246,0.2); text-transform: uppercase; margin-left: 4px; }
@@ -478,6 +479,7 @@ let initialSnapshotReceived = false;
 
 let dbPublicMessages = [];
 let dbPrivateMessages = [];
+let dbHistoricalMessages = []; 
 let localPendingQueue = [];
 let localUsersCache = []; 
 
@@ -489,6 +491,7 @@ let currentMentionType = "";
 let isEditingMode = false;
 let editingMessageId = null;
 let editingCollectionTarget = "messages";
+let allMessagesLoaded = false; 
 
 /* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
@@ -731,7 +734,7 @@ async function startChat(user) {
 /* ZERO-READ DYNAMIC LOCAL CACHE ENGINE */
 function updateAutocompleteCacheFromLoadedMessages() {
   const uniqueUsers = new Map();
-  let allMessages = [...dbPublicMessages, ...dbPrivateMessages];
+  let allMessages = [...dbHistoricalMessages, ...dbPublicMessages, ...dbPrivateMessages];
 
   allMessages.forEach(msg => {
     if (msg.userId && msg.username) {
@@ -761,6 +764,11 @@ function listenForNewMessages(user) {
     if (!lastLoadedTimestamp && snapshot.docs.length > 0) {
       lastLoadedTimestamp = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
     }
+    
+    // If the room has fewer than 20 messages total from day one, all assets are preloaded
+    if (snapshot.docs.length < 20) {
+      allMessagesLoaded = true;
+    }
     renderMessages();
   });
 
@@ -789,7 +797,26 @@ function renderMessages() {
 
   scroller.innerHTML = "";
 
-  let allMessages = [...dbPublicMessages, ...dbPrivateMessages];
+  // Inject the permanent verification banner directly at the head index point
+  if (allMessagesLoaded) {
+    const banner = document.createElement("div");
+    banner.style.cssText = "text-align: center; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; padding: 10px 0; width: 100%;";
+    banner.textContent = "All messages loaded";
+    scroller.appendChild(banner);
+  }
+
+  let allMessages = [...dbHistoricalMessages, ...dbPublicMessages, ...dbPrivateMessages];
+  
+  // Deduplicate array nodes by document identifiers or client tokens
+  const seenIds = new Set();
+  allMessages = allMessages.filter(msg => {
+    const msgId = msg.id || msg.clientSideId;
+    if (!msgId) return true;
+    if (seenIds.has(msgId)) return false;
+    seenIds.add(msgId);
+    return true;
+  });
+
   allMessages.sort((a, b) => {
     const timeA = a.timestamp ? a.timestamp.toMillis() : Date.now();
     const timeB = b.timestamp ? b.timestamp.toMillis() : Date.now();
@@ -907,16 +934,13 @@ function displayMessage(scroller, msgData, returnHTML = false) {
       const messageInput = document.getElementById("message-input");
       const sendButtonElement = document.getElementById("send-message-btn");
       
-      // Inject parameters into global edit states
       isEditingMode = true;
       editingMessageId = msgData.id;
       editingCollectionTarget = dataCollectionTargetStr;
       
-      // Mirror existing text body values to the chat entry field
       messageInput.value = msgData.text;
       sendButtonElement.textContent = "Edit";
       
-      // Focus element node triggers soft mobile keypads contextually on tablets/iPads
       messageInput.focus();
       messageInput.selectionStart = messageInput.selectionEnd = messageInput.value.length;
     };
@@ -924,7 +948,6 @@ function displayMessage(scroller, msgData, returnHTML = false) {
 
   if (deleteBtn) {
     deleteBtn.onclick = async () => {
-      // Stripped confirmation window alert requirement as requested for instant deletion
       await deleteDoc(doc(db, dataCollectionTargetStr, msgData.id));
     };
   }
@@ -1121,7 +1144,7 @@ function showMentions(users, type) {
 async function handleScrollPagination() {
   const scroller = document.getElementById("message-scroller");
   
-  if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp) {
+  if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp && !allMessagesLoaded) {
     isLoadingMore = true;
 
     const loaderBanner = document.createElement("div");
@@ -1139,24 +1162,17 @@ async function handleScrollPagination() {
       const existingBanner = document.getElementById("history-loading-banner");
       if (existingBanner) existingBanner.remove();
 
+      if (olderSnapshot.docs.length < 20) {
+        allMessagesLoaded = true;
+      }
+
       if (olderSnapshot.docs.length > 0) {
         lastLoadedTimestamp = olderSnapshot.docs[olderSnapshot.docs.length - 1].data().timestamp;
         
-        const olderMessages = olderSnapshot.docs.reverse();
-        const fragment = document.createDocumentFragment();
+        const fetchedHistorical = olderSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isWhisper: false }));
+        dbHistoricalMessages = [...dbHistoricalMessages, ...fetchedHistorical];
         
-        olderMessages.forEach(doc => {
-          const data = doc.data();
-          const div = document.createElement("div");
-          
-          div.className = "msg-block" + (data.isPending ? " pending" : "");
-          if (data.clientSideId) div.id = data.clientSideId;
-          
-          div.innerHTML = displayMessage(null, { ...data, id: doc.id, isWhisper: false }, true);
-          fragment.appendChild(div);
-        });
-        
-        scroller.insertBefore(fragment, scroller.firstChild);
+        renderMessages();
         scroller.scrollTop = scroller.scrollHeight - initialScrollHeight;
       }
     } catch (err) {
