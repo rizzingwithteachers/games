@@ -446,25 +446,38 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+/* ALPHABETICALLY ORGANIZED COMMAND LIST ENGINE */
 const EX_COMMANDS = [
-  { name: "/w", desc: "Whisper privately to other users" },
-  { name: "/omoggle", desc: "Invite a user to a private Omoggle duel session" },
-  { name: "/mute", desc: "Mute a specific chat participant. Syntax: /mute @user mins" },
-  { name: "/admin", desc: "Elevate user parameters to Room Admin" },
-  { name: "/headadmin", desc: "Elevate user parameters to Head Admin (Owner)" }
-];
+  { name: "/admin", desc: "Changes user permissions to allow for more control" },
+  { name: "/ban", desc: "Bans a user from using or seeing chat for a chosen amount oftime" },
+  { name: "/deleteall", desc: "Deletes all chat messages and whispers" },
+  { name: "/deleteuser", desc: "Removes user from database entirely" },
+  { name: "/headadmin", desc: "Changes user permissions to allow for full control" },
+  { name: "/mute", desc: "Mute a specific user for a chosen amount of time" },
+  { name: "/omoggle", desc: "Invite a user to an Omoggle duel" },
+  { name: "/permaban", desc: "Permanently bans a user from chat until unbanned" },
+  { name: "/subscription", desc: "Assigns rank (basic or premium) to user" },
+  { name: "/unadmin", desc: "Removes admin permissions from a user" },
+  { name: "/unban", desc: "Unbans a user from the chat" },
+  { name: "/unheadadmin", desc: "Removes headadmin status from a user" },
+  { name: "/unmute", desc: "Unmutes a user from the chat" },
+  { name: "/undo", desc: "Undos your last edit or delete" },
+  { name: "/users", desc: "Shows a list of all current users" },
+  { name: "/w", desc: "Whisper privately to other users" }
+].sort((a, b) => a.name.localeCompare(b.name));
 
 let currentUser = null;
 let currentUsername = "User"; 
 let currentUserRole = "user"; 
 let currentUserMutedUntil = 0; 
+let currentUserBannedUntil = 0;
 
 let lastMessageTime = 0;
 const MESSAGE_COOLDOWN = 2000; 
 let lastLoadedTimestamp = null;
 let isLoadingMore = false;
 let initialSnapshotReceived = false; 
-let isFirstLoad = true; // <-- Added to prevent updates from breaking scrolling
+let isFirstLoad = true; 
 
 let dbPublicMessages = [];
 let dbPrivateMessages = [];
@@ -482,6 +495,9 @@ let isEditingMode = false;
 let editingMessageId = null;
 let editingCollectionTarget = "messages";
 let allMessagesLoaded = false; 
+
+/* UNDO LOG PARAMETER STACK STORAGE */
+let lastActionLog = null; 
 
 /* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
@@ -509,11 +525,17 @@ onAuthStateChanged(auth, async (user) => {
       currentUsername = data.username || user.email.split("@")[0];
       currentUserRole = data.role || "user";
       currentUserMutedUntil = data.mutedUntil || 0;
+      currentUserBannedUntil = data.bannedUntil || 0;
+      
+      if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) {
+        handleBannedUserDisplay();
+      }
     } else {
       setDoc(userRef, {
         username: user.email.split("@")[0],
         email: user.email,
         role: "user",
+        rank: "none",
         createdAt: Date.now()
       }, { merge: true });
       currentUsername = user.email.split("@")[0];
@@ -525,34 +547,34 @@ onAuthStateChanged(auth, async (user) => {
   addLogout();
 });
 
-/* DAILY USER LIST CACHE SYNC ENGINE */
+function handleBannedUserDisplay() {
+  const scroller = document.getElementById("message-scroller");
+  const inputRow = document.querySelector(".input-row");
+  if(inputRow) inputRow.style.display = "none";
+  if(scroller) {
+    scroller.innerHTML = `<div style="text-align: center; color: #ef4444; font-family: var(--font-display); font-size: 1.2rem; font-weight: 800; padding: 3rem 1rem;">You have been banned from this chat channel.</div>`;
+  }
+}
+
+/* MASTER USER REGISTRY RE-ENGINEERED FOR EXTENDED FIELDS */
 async function loadAndCacheAllUsers() {
   try {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const cachedDate = localStorage.getItem("chat_users_cache_date");
-    const cachedData = localStorage.getItem("chat_users_cache_list");
-
-    if (cachedDate === todayStr && cachedData) {
-      allRegisteredUsers = JSON.parse(cachedData);
-      return;
-    }
-
-    localStorage.removeItem("chat_users_cache_date");
-    localStorage.removeItem("chat_users_cache_list");
-
     const snap = await getDocs(collection(db, "users"));
     const fetchedUsers = snap.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
         username: data.username || "User",
+        email: data.email || "N/A",
+        role: data.role || "user",
+        rank: data.rank || "none",
+        createdAt: data.createdAt || 0,
         avatar: data.username ? data.username[0].toUpperCase() : "U"
       };
     });
 
     allRegisteredUsers = fetchedUsers;
-    localStorage.setItem("chat_users_cache_date", todayStr);
-    localStorage.setItem("chat_users_cache_list", JSON.stringify(fetchedUsers));
+    localUsersCache = fetchedUsers;
   } catch (err) {
     console.error("Failed to compile master user profile storage parameters:", err);
   }
@@ -585,8 +607,8 @@ function showLocalSystemMessage(text, isError = false) {
   }
 }
 
-/* INLINE TIMER HANDLER */
-function startCooldownTimer() {
+/* MUTE & COOLDOWN TIMER LAYOUT MANAGER COMBINED */
+function startCooldownTimer(forcedMuteTime = null) {
   const btn = document.getElementById("send-message-btn");
   const textContainer = document.getElementById("cooldown-timer-text");
 
@@ -594,8 +616,13 @@ function startCooldownTimer() {
   textContainer.style.visibility = "visible";
 
   const updateDisplay = () => {
-    const elapsed = Date.now() - lastMessageTime;
-    const remaining = MESSAGE_COOLDOWN - elapsed;
+    let remaining = 0;
+    if (forcedMuteTime) {
+      remaining = forcedMuteTime - Date.now();
+    } else {
+      const elapsed = Date.now() - lastMessageTime;
+      remaining = MESSAGE_COOLDOWN - elapsed;
+    }
 
     if (remaining <= 0) {
       clearInterval(countdownInterval);
@@ -603,8 +630,16 @@ function startCooldownTimer() {
       textContainer.style.visibility = "hidden";
       textContainer.textContent = "";
     } else {
-      const secondsLeft = Math.ceil(remaining / 1000);
-      textContainer.textContent = `You must wait ${secondsLeft} more second${secondsLeft > 1 ? 's' : ''} to send a message`;
+      if (forcedMuteTime) {
+        const totalSecs = Math.ceil(remaining / 1000);
+        const mins = Math.floor(totalSecs / 60);
+        const secs = totalSecs % 60;
+        const timeStr = mins > 0 ? `${mins} minute(s) ${secs} second(s)` : `${secs} second(s)`;
+        textContainer.textContent = `You are muted for ${timeStr}`;
+      } else {
+        const secondsLeft = Math.ceil(remaining / 1000);
+        textContainer.textContent = `You must wait ${secondsLeft} more second${secondsLeft > 1 ? 's' : ''} to send a message`;
+      }
     }
   };
 
@@ -627,12 +662,21 @@ async function startChat(user) {
   btn.onclick = async () => {
     let textToSend = input.value.trim();
     if (!textToSend) return;
+
+    /* BLOCKS MUTED PARTICIPANTS WITH COOLDOWN BANNER INTERFACE */
+    if (currentUserMutedUntil && Date.now() < currentUserMutedUntil) {
+      startCooldownTimer(currentUserMutedUntil);
+      return;
+    }
     
     if (isEditingMode) {
       try {
-        await updateDoc(doc(db, editingCollectionTarget, editingMessageId), {
-          text: textToSend
-        });
+        const docRef = doc(db, editingCollectionTarget, editingMessageId);
+        const previousSnapshot = await getDoc(docRef);
+        if (previousSnapshot.exists()) {
+          lastActionLog = { type: "edit", collection: editingCollectionTarget, id: editingMessageId, data: previousSnapshot.data() };
+        }
+        await updateDoc(docRef, { text: textToSend });
       } catch (err) {
         console.error("Error writing message update modification:", err);
       }
@@ -641,12 +685,6 @@ async function startChat(user) {
       btn.textContent = "Send";
       input.value = "";
       return; 
-    }
-    
-    if (currentUserMutedUntil && Date.now() < currentUserMutedUntil) {
-      const minsRemaining = Math.ceil((currentUserMutedUntil - Date.now()) / 60000);
-      showLocalSystemMessage(`You are currently muted. You can participate again in ${minsRemaining} minute(s).`, true);
-      return;
     }
 
     const now = Date.now();
@@ -661,37 +699,143 @@ async function startChat(user) {
     if (textToSend.startsWith("/")) {
       const segments = textToSend.split(/\s+/);
       const commandKey = segments[0].toLowerCase();
+      const parsedTargetName = segments[1]?.replace("@", "");
+      const targetUser = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName?.toLowerCase());
 
-      if (commandKey === "/mute" && (currentUserRole === "admin" || currentUserRole === "owner")) {
-        const parsedTargetName = segments[1]?.replace("@", "");
+      const isAdminPlus = currentUserRole === "admin" || currentUserRole === "owner";
+      const isOwnerOnly = currentUserRole === "owner";
+
+      // 1. /mute
+      if (commandKey === "/mute" && isAdminPlus) {
         const minutesValue = parseInt(segments[2]);
-        if (!parsedTargetName || isNaN(minutesValue)) { showLocalSystemMessage("Syntax Error: /mute @username minutes", true); return; }
-        
-        const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
-        if (targetCachedProfile) {
-          await updateDoc(doc(db, "users", targetCachedProfile.id), { mutedUntil: Date.now() + (minutesValue * 60 * 1000) });
-          showLocalSystemMessage(`Muted user @${parsedTargetName} for ${minutesValue} minutes.`, false);
-        } else { showLocalSystemMessage("Moderation Issue: Target not found inside loaded chat history registry.", true); }
+        if (!targetUser || isNaN(minutesValue)) { showLocalSystemMessage("Syntax: /mute @username minutes", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { mutedUntil: Date.now() + (minutesValue * 60 * 1000) });
+        showLocalSystemMessage(`Muted user @${targetUser.username} for ${minutesValue} minutes.`, false);
         return;
       }
 
-      if (commandKey === "/admin" && currentUserRole === "owner") {
-        const parsedTargetName = segments[1]?.replace("@", "");
-        const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
-        if (targetCachedProfile) {
-          await updateDoc(doc(db, "users", targetCachedProfile.id), { role: "admin" });
-          showLocalSystemMessage(`Success: Promoted @${parsedTargetName} to Admin privileges.`, false);
-        } else { showLocalSystemMessage("Target user profile cache reference not found.", true); }
+      // 2. /unmute
+      if (commandKey === "/unmute" && isAdminPlus) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /unmute @username", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { mutedUntil: 0 });
+        showLocalSystemMessage(`Unmuted user @${targetUser.username}.`, false);
         return;
       }
 
-      if (commandKey === "/headadmin" && currentUserRole === "owner") {
-        const parsedTargetName = segments[1]?.replace("@", "");
-        const targetCachedProfile = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName.toLowerCase());
-        if (targetCachedProfile) {
-          await updateDoc(doc(db, "users", targetCachedProfile.id), { role: "owner" });
-          showLocalSystemMessage(`Success: Promoted @${parsedTargetName} to Head Admin (Owner) privileges.`, false);
-        } else { showLocalSystemMessage("Target user profile cache reference not found.", true); }
+      // 3. /admin
+      if (commandKey === "/admin" && isOwnerOnly) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /admin @username", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { role: "admin" });
+        showLocalSystemMessage(`Promoted @${targetUser.username} to Admin.`, false);
+        return;
+      }
+
+      // 4. /unadmin
+      if (commandKey === "/unadmin" && isOwnerOnly) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /unadmin @username", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { role: "user" });
+        showLocalSystemMessage(`Demoted @${targetUser.username} to standard User level.`, false);
+        return;
+      }
+
+      // 5. /headadmin
+      if (commandKey === "/headadmin" && isOwnerOnly) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /headadmin @username", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { role: "owner" });
+        showLocalSystemMessage(`Promoted @${targetUser.username} to Head Admin/Owner privileges.`, false);
+        return;
+      }
+
+      // 6. /unheadadmin
+      if (commandKey === "/unheadadmin" && isOwnerOnly) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /unheadadmin @username", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { role: "admin" });
+        showLocalSystemMessage(`Stripped Head Admin access from @${targetUser.username}. Assigned Admin parameters.`, false);
+        return;
+      }
+
+      // 7. /subscription
+      if (commandKey === "/subscription" && isOwnerOnly) {
+        const chosenRank = segments[2]?.toLowerCase();
+        if (!targetUser || (chosenRank !== "basic" && chosenRank !== "premium")) { showLocalSystemMessage("Syntax: /subscription @username basic/premium", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { rank: chosenRank });
+        showLocalSystemMessage(`Updated subscription framework parameter for @${targetUser.username} to [${chosenRank}].`, false);
+        await loadAndCacheAllUsers();
+        return;
+      }
+
+      // 8. /deleteuser
+      if (commandKey === "/deleteuser" && isOwnerOnly) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /deleteuser @username", true); return; }
+        await deleteDoc(doc(db, "users", targetUser.id));
+        showLocalSystemMessage(`Purged user database authentication parameters for user identity: @${targetUser.username}.`, false);
+        await loadAndCacheAllUsers();
+        return;
+      }
+
+      // 9. /ban
+      if (commandKey === "/ban" && isAdminPlus) {
+        const hoursValue = parseInt(segments[2]);
+        if (!targetUser || isNaN(hoursValue)) { showLocalSystemMessage("Syntax: /ban @username hours", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { bannedUntil: Date.now() + (hoursValue * 60 * 60 * 1000) });
+        showLocalSystemMessage(`Banned @${targetUser.username} from entering board architecture for ${hoursValue} hours.`, false);
+        return;
+      }
+
+      // 10. /unban
+      if (commandKey === "/unban" && isAdminPlus) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /unban @username", true); return; }
+        await updateDoc(doc(db, "users", targetUser.id), { bannedUntil: 0 });
+        showLocalSystemMessage(`Lifted server entry ban parameters from user profile @${targetUser.username}.`, false);
+        return;
+      }
+
+      // 11. /permaban
+      if (commandKey === "/permaban" && isAdminPlus) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /permaban @username", true); return; }
+        // Sets expiration timestamp 100 years out
+        await updateDoc(doc(db, "users", targetUser.id), { bannedUntil: Date.now() + (100 * 365 * 24 * 60 * 60 * 1000) });
+        showLocalSystemMessage(`Permanently banned @${targetUser.username} from entering chat framework loops.`, false);
+        return;
+      }
+
+      // 12. /deleteall
+      if (commandKey === "/deleteall" && isAdminPlus) {
+        const publicSnap = await getDocs(collection(db, "messages"));
+        publicSnap.forEach(async (documentItem) => await deleteDoc(doc(db, "messages", documentItem.id)));
+        const whispersSnap = await getDocs(collection(db, "whispers"));
+        whispersSnap.forEach(async (documentItem) => await deleteDoc(doc(db, "whispers", documentItem.id)));
+        showLocalSystemMessage("Database tables successfully optimized. Purged records completely.", false);
+        return;
+      }
+
+      // 13. /users
+      if (commandKey === "/users" && isAdminPlus) {
+        await loadAndCacheAllUsers();
+        let readoutStructureStr = "<span style='text-transform: uppercase; font-size: 0.8rem; color: #a855f7;'>Active User System Diagnostics Log Matrix:</span><br>";
+        allRegisteredUsers.forEach(u => {
+          const creationDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "N/A";
+          readoutStructureStr += `• ID: <strong>${u.username}</strong> | Core Contact: ${u.email} | Scope: ${u.role} | Tier: ${u.rank} | Log: ${creationDate}<br>`;
+        });
+        showLocalSystemMessage(readoutStructureStr, false);
+        return;
+      }
+
+      /* 14. /undo CONFIGURATION CORE EXECUTOR */
+      if (commandKey === "/undo") {
+        if (!lastActionLog) { showLocalSystemMessage("No valid local environment modifications recorded on the action track stack.", true); return; }
+        try {
+          if (lastActionLog.type === "delete") {
+            await setDoc(doc(db, lastActionLog.collection, lastActionLog.id), lastActionLog.data);
+            showLocalSystemMessage("Undo Executed: Restored deleted document record.");
+          } else if (lastActionLog.type === "edit") {
+            await updateDoc(doc(db, lastActionLog.collection, lastActionLog.id), { text: lastActionLog.data.text });
+            showLocalSystemMessage("Undo Executed: Reverted text modifications to previous step state.");
+          }
+          lastActionLog = null;
+        } catch(err) {
+          showLocalSystemMessage("Failed to apply document restoration step parameters.", true);
+        }
         return;
       }
     }
@@ -730,7 +874,7 @@ async function startChat(user) {
     };
 
     localPendingQueue.push(pendingMsgData);
-    renderMessages(true); // <-- Force view down to reveal your new pending message layout box
+    renderMessages(true); 
 
     try {
       if (targetUsernames.length > 0) {
@@ -854,9 +998,13 @@ function listenForNewMessages(user) {
 }
 
 function renderMessages(forceScrollDown = false) {
+  if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) {
+    handleBannedUserDisplay();
+    return;
+  }
+
   const scroller = document.getElementById("message-scroller");
   
-  // 1. Capture scroll states relative to current view positions before cleaning structural elements
   const isPinnedToBottom = scroller.scrollHeight - scroller.clientHeight <= scroller.scrollTop + 30;
   const cachedScrollTop = scroller.scrollTop;
 
@@ -894,14 +1042,12 @@ function renderMessages(forceScrollDown = false) {
   allMessages.forEach(msg => displayMessage(scroller, msg));
   localPendingQueue.forEach(pendingMsg => displayMessage(scroller, pendingMsg));
   
-  // 2. Adjust alignment rules logically based on action type
   if (isFirstLoad && dbPublicMessages.length > 0) {
     scroller.scrollTop = scroller.scrollHeight;
     isFirstLoad = false;
   } else if (isPinnedToBottom || forceScrollDown) {
     scroller.scrollTop = scroller.scrollHeight;
   } else {
-    // Keeps view absolutely locked right where you were looking during message editing/deleting
     scroller.scrollTop = cachedScrollTop;
   }
 }
@@ -1023,9 +1169,19 @@ function displayMessage(scroller, msgData) {
     };
   }
 
+  /* DETECTS DELETION ACTIONS AND CACHES LOG HISTORIES FOR UNDO */
   if (deleteBtn) {
     deleteBtn.onclick = async () => {
-      await deleteDoc(doc(db, dataCollectionTargetStr, msgData.id));
+      try {
+        const targetReferenceDoc = doc(db, dataCollectionTargetStr, msgData.id);
+        const existingDataSnapshot = await getDoc(targetReferenceDoc);
+        if (existingDataSnapshot.exists()) {
+          lastActionLog = { type: "delete", collection: dataCollectionTargetStr, id: msgData.id, data: existingDataSnapshot.data() };
+        }
+        await deleteDoc(targetReferenceDoc);
+      } catch(err) {
+        console.error("Failed to process document purge lifecycle steps:", err);
+      }
     };
   }
 
@@ -1054,8 +1210,12 @@ function setupAutocompleteEngine(input) {
     if (val.startsWith("/")) {
       if (currentWordIdx === 0) {
         const clearCommands = EX_COMMANDS.filter(c => {
-          if (c.name === "/mute") return currentUserRole === "admin" || currentUserRole === "owner";
-          if (c.name === "/admin" || c.name === "/headadmin") return currentUserRole === "owner";
+          if (["/mute", "/unmute", "/ban", "/unban", "/permaban", "/deleteall", "/users"].includes(c.name)) {
+            return currentUserRole === "admin" || currentUserRole === "owner";
+          }
+          if (["/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser"].includes(c.name)) {
+            return currentUserRole === "owner";
+          }
           return true;
         }).filter(c => c.name.toLowerCase().startsWith(val.toLowerCase()));
 
@@ -1070,12 +1230,12 @@ function setupAutocompleteEngine(input) {
     }
 
     const baseCommandContext = words[0].toLowerCase();
-    const targetAutocompleteCommands = ["/w", "/omoggle", "/mute", "/admin", "/headadmin"];
+    const targetAutocompleteCommands = ["/w", "/omoggle", "/mute", "/unmute", "/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser", "/ban", "/unban", "/permaban"];
 
     if (targetAutocompleteCommands.includes(baseCommandContext)) {
       let isTargetingPhase = true;
 
-      if (["/mute", "/admin", "/headadmin"].includes(baseCommandContext) && currentWordIdx > 1) {
+      if (["/mute", "/unmute", "/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser", "/ban", "/unban", "/permaban"].includes(baseCommandContext) && currentWordIdx > 1) {
         isTargetingPhase = false;
       } else {
         for (let i = 1; i < currentWordIdx; i++) {
