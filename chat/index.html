@@ -447,21 +447,21 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const EX_COMMANDS = [
-  { name: "/admin", desc: "Elevate user parameters to Room Admin" },
-  { name: "/ban", desc: "Bans a user from even seeing the chat" },
-  { name: "/deleteall", desc: "Deletes all whispers and chat messages" },
-  { name: "/deleteuser", desc: "Removes user from database completely" },
-  { name: "/headadmin", desc: "Elevate user parameters to Head Admin (Owner)" },
-  { name: "/mute", desc: "Mute a specific chat participant. Syntax: /mute @user mins" },
-  { name: "/omoggle", desc: "Invite a user to a private Omoggle duel session" },
-  { name: "/permaban", desc: "Permanently bans a user from chat" },
-  { name: "/subscription", desc: "Assigns permanent rank (basic or premium) to user" },
-  { name: "/unadmin", desc: "Removes admin parameters from a user" },
-  { name: "/unban", desc: "Unbans a user from the platform" },
+  { name: "/admin", desc: "Changes user permissions to allow for more control" },
+  { name: "/ban", desc: "Bans a user from using or seeing chat for a chosen amount oftime" },
+  { name: "/deleteall", desc: "Deletes all chat messages and whispers" },
+  { name: "/deleteuser", desc: "Removes user from database entirely" },
+  { name: "/headadmin", desc: "Changes user permissions to allow for full control" },
+  { name: "/mute", desc: "Mute a specific user for a chosen amount of time" },
+  { name: "/omoggle", desc: "Invite a user to an Omoggle duel" },
+  { name: "/permaban", desc: "Permanently bans a user from chat until unbanned" },
+  { name: "/subscription", desc: "Assigns rank (basic or premium) to user" },
+  { name: "/unadmin", desc: "Removes admin permissions from a user" },
+  { name: "/unban", desc: "Unbans a user from the chat" },
   { name: "/unheadadmin", desc: "Removes headadmin status from a user" },
-  { name: "/unmute", desc: "Unmutes a specific chat participant" },
-  { name: "/undo", desc: "Undos your last edit or deletion action" },
-  { name: "/users", desc: "Returns a structured overview list of registered users" },
+  { name: "/unmute", desc: "Unmutes a user from the chat" },
+  { name: "/undo", desc: "Undos your last edit or delete" },
+  { name: "/users", desc: "Shows a list of all current users" },
   { name: "/w", desc: "Whisper privately to other users" }
 ].sort((a, b) => a.name.localeCompare(b.name));
 
