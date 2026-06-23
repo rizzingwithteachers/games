@@ -7,21 +7,28 @@
   <link rel="stylesheet" href="../style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="peerjs.min.js"></script>
 
   <style>
     /* ── SHOWDOWN STYLES ────────────────────────────────── */
-    .showdown-container { max-width: 1000px; margin: 2.5rem auto 4rem; padding: 0 2rem; width: 100%; box-sizing: border-box; }
-    .showdown-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 3rem 2rem; text-align: center; position: relative; overflow: hidden; min-height: 460px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    /* OPTIMIZATION: Configured maximum constraints and auto-scrolling to trap panels on tiny viewports seamlessly */
+    .showdown-container { max-width: 1000px; margin: 1rem auto; padding: 0 1.5rem; width: 100%; box-sizing: border-box; }
+    .showdown-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 2rem 1.5rem; text-align: center; position: relative; overflow-y: auto; max-height: calc(100dvh - 110px); display: flex; flex-direction: column; justify-content: center; align-items: center; }
     .view-stage { width: 100%; display: none; flex-direction: column; align-items: center; }
     .view-stage.active { display: flex; }
-    .showdown-title { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; background: linear-gradient(135deg, #fff 30%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .showdown-desc { color: var(--text-muted); max-width: 500px; margin-bottom: 2.5rem; line-height: 1.6; font-size: 0.95rem; }
-    .status-display-msg { color: #ef4444; margin-top: 1.5rem; font-size: 0.95rem; font-weight: 600; min-height: 1.5rem; }
+    .showdown-title { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(135deg, #fff 30%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .showdown-desc { color: var(--text-muted); max-width: 500px; margin-bottom: 1.5rem; line-height: 1.6; font-size: 0.95rem; }
+    .status-display-msg { color: #ef4444; margin-top: 1rem; font-size: 0.95rem; font-weight: 600; min-height: 1.5rem; }
     .radar-spinner { width: 70px; height: 70px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 2rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .battleground { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; width: 100%; margin-bottom: 2.5rem; }
+    /* OPTIMIZATION: Flex responsive design patterns applied for compact vertical spacing limitations */
+    .battleground { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; margin-bottom: 1.5rem; }
+    @media (max-height: 700px) {
+      .battleground { gap: 0.75rem; margin-bottom: 0.75rem; }
+      .showdown-title { font-size: 1.6rem; }
+      .showdown-desc { margin-bottom: 1rem; }
+    }
     .player-slot { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-m); aspect-ratio: 4/3; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
     .player-slot.winning { border-color: var(--accent); }
     .player-slot video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 1; background: #000; }
@@ -30,14 +37,14 @@
     .live-metrics { margin-top: auto; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--text-muted); z-index: 2; position: relative; }
     .winning .live-metrics { color: var(--accent); }
 
-    .timer-banner { font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; color: #fff; margin-bottom: 1.5rem; }
+    .timer-banner { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; color: #fff; margin-bottom: 1rem; }
     .scale-wrapper { width: 80%; max-width: 500px; margin: 0 auto; position: relative; }
-    .scale-labels { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.6rem; text-transform: uppercase; }
+    .scale-labels { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; }
     .scale-track { height: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; position: relative; width: 100%; }
     .scale-center-notch { position: absolute; left: 50%; top: -4px; width: 2px; height: 16px; background: var(--text-muted); transform: translateX(-50%); }
     .scale-needle { position: absolute; top: -6px; width: 20px; height: 20px; background: var(--accent); border: 3px solid #fff; border-radius: 50%; transform: translateX(-50%); transition: left 0.25s ease; }
-    .result-announcement { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; margin-bottom: 1.5rem; display: none; }
-    .action-row { margin-top: 2rem; display: flex; gap: 12px; }
+    .result-announcement { font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; margin-bottom: 1rem; display: none; }
+    .action-row { margin-top: 1.5rem; display: flex; gap: 12px; }
   </style>
 </head>
 <body>
@@ -144,7 +151,6 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // DOM Bindings
     const stageLobby = document.getElementById('stage-lobby');
     const stageSearching = document.getElementById('stage-searching');
     const stageMatch = document.getElementById('stage-match');
@@ -164,10 +170,10 @@
     const userVideo = document.getElementById('user-video');
     const opponentVideo = document.getElementById('opponent-video');
 
-    // Parse Deep Link Challenge Identifiers
     const urlParams = new URLSearchParams(window.location.search);
     const privateRoomId = urlParams.get('room');
     const privateRole = urlParams.get('role');
+    const linkedHostName = urlParams.get('hostName'); // OPTIMIZATION: Read fallback parameter instantly from search link profiles
 
     let peer = null;
     let myPeerId = null;
@@ -183,8 +189,36 @@
     let currentScore = 50;
     let currentUserProfile = { uid: null, username: "Unknown" };
 
+    /* OPTIMIZATION: Secure hardware stream lifecycle cleaner to avoid camera request freeze issues on sequential matches */
+    function safelyStopCameraTracks() {
+      if (myMediaStream) {
+        myMediaStream.getTracks().forEach(track => {
+          track.stop();
+          console.log("Hardware track released successfully.");
+        });
+        myMediaStream = null;
+      }
+      if (userVideo) userVideo.srcObject = null;
+      if (opponentVideo) opponentVideo.srcObject = null;
+    }
+
+    async function safeAcquireCameraStream() {
+      if (myMediaStream) return true;
+      try {
+        // Fallback constraint options to safely catch browser variations
+        myMediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } },
+          audio: false
+        });
+        userVideo.srcObject = myMediaStream;
+        return true;
+      } catch (e) {
+        console.error("Camera acquisition failure:", e);
+        return false;
+      }
+    }
+
     async function initPeerSession() {
-      // Direct assignment bypass for restricted challenges
       if (privateRoomId && privateRole === "host") {
         myPeerId = privateRoomId;
         isHost = true;
@@ -220,19 +254,28 @@
 
       const container = document.getElementById('auth-button-container');
       container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-      document.getElementById('logout-btn').onclick = async () => { await signOut(auth); window.location.reload(); };
+      document.getElementById('logout-btn').onclick = async () => { 
+        safelyStopCameraTracks();
+        await signOut(auth); 
+        window.location.reload(); 
+      };
+
+      if (privateRoomId) {
+        switchStage(stageMatch);
+        if (linkedHostName) {
+          opponentNameTag.innerText = decodeURIComponent(linkedHostName);
+        } else {
+          opponentNameTag.innerText = privateRole === "host" ? "Challenger" : "Host";
+        }
+      }
 
       await initPeerSession();
     });
 
     async function executePrivateGuestHandshake() {
       switchStage(stageMatch);
-      opponentNameTag.innerText = "Challenger";
-      
-      try {
-        myMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        userVideo.srcObject = myMediaStream;
-      } catch (e) { alert("Camera acquisition required."); return; }
+      const videoAcquired = await safeAcquireCameraStream();
+      if (!videoAcquired) { alert("Camera access required for Omoggle duels."); return; }
 
       isHost = false;
       const conn = peer.connect(privateRoomId);
@@ -245,15 +288,15 @@
     }
 
     async function startMatchmaking() {
-      if (privateRoomId) return; // Completely hard-block queue access if in a private challenge session
+      if (privateRoomId) return; 
       if (inQueueProcess || !myPeerId) return; 
       inQueueProcess = true;
 
-      if (!myMediaStream) {
-        try {
-          myMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          userVideo.srcObject = myMediaStream;
-        } catch (e) { lobbyMsg.innerText = "Camera access required."; inQueueProcess = false; return; }
+      const videoAcquired = await safeAcquireCameraStream();
+      if (!videoAcquired) { 
+        lobbyMsg.innerText = "Camera initialization failed. Please verify browser settings."; 
+        inQueueProcess = false; 
+        return; 
       }
 
       switchStage(stageSearching);
@@ -268,7 +311,7 @@
           const success = await runTransaction(db, async (tx) => {
             const sfDoc = await tx.get(docRef);
             if (sfDoc.exists() && sfDoc.data().status === "waiting") {
-              tx.update(docRef, { status: "matched", guestPeerId: myPeerId, guestUid: currentUserProfile.uid });
+              tx.update(docRef, { status: "matched", guestPeerId: myPeerId, guestUid: currentUserProfile.uid, guestName: currentUserProfile.username });
               return sfDoc.data();
             }
             return null;
@@ -276,7 +319,7 @@
 
           if (success) {
             isHost = false;
-            opponentNameTag.innerText = "Player";
+            opponentNameTag.innerText = success.hostName || "Player";
             setupDataChannel(peer.connect(success.hostPeerId));
             inQueueProcess = false;
             return;
@@ -285,13 +328,13 @@
 
         isHost = true;
         activeQueueDocRef = await addDoc(collection(db, "showdown_queue"), {
-          status: "waiting", hostPeerId: myPeerId, hostUid: currentUserProfile.uid, guestPeerId: "", guestUid: "", createdAt: Date.now()
+          status: "waiting", hostPeerId: myPeerId, hostUid: currentUserProfile.uid, hostName: currentUserProfile.username, guestPeerId: "", guestUid: "", createdAt: Date.now()
         });
 
         queueListenerUnsubscribe = onSnapshot(activeQueueDocRef, (docS) => {
           const d = docS.data();
           if (d && d.status === "matched") {
-            opponentNameTag.innerText = "Player";
+            opponentNameTag.innerText = d.guestName || "Player";
             deleteDoc(activeQueueDocRef);
             if (queueListenerUnsubscribe) queueListenerUnsubscribe();
           }
@@ -303,12 +346,16 @@
     function cancelSearch() {
       if (queueListenerUnsubscribe) queueListenerUnsubscribe();
       if (isHost && activeQueueDocRef) deleteDoc(activeQueueDocRef);
+      safelyStopCameraTracks();
       switchStage(stageLobby);
     }
 
     function setupDataChannel(conn) {
       currentConnection = conn;
       currentConnection.on('open', () => {
+        /* OPTIMIZATION: Transmit username profile information over raw P2P buffers directly upon handshake confirmation */
+        currentConnection.send({ type: 'init_name', username: currentUserProfile.username });
+
         if (!isHost && myMediaStream) {
           const call = peer.call(conn.peer, myMediaStream);
           call.on('stream', (stream) => { opponentVideo.srcObject = stream; });
@@ -317,11 +364,15 @@
       });
 
       currentConnection.on('data', (data) => {
+        if (data.type === 'init_name') {
+          opponentNameTag.innerText = data.username;
+        }
         if (data.type === 'sync_score') { currentScore = data.score; renderUIFrames(); }
       });
 
       currentConnection.on('close', () => {
         clearLoops();
+        safelyStopCameraTracks();
         switchStage(stageLobby);
       });
     }
@@ -332,7 +383,6 @@
       currentScore = 50; scaleNeedle.style.left = '50%';
       
       if (privateRoomId) {
-        // Hide next options inside restricted duel lobbies
         btnNext.style.setProperty("display", "none", "important");
       }
 
@@ -383,11 +433,22 @@
     }
 
     function clearLoops() { clearInterval(timerInterval); clearInterval(matchInterval); }
-    function cleanExit() { if (currentConnection) currentConnection.close(); clearLoops(); window.location.href = privateRoomId ? "../chat/" : "#"; switchStage(stageLobby); }
+    
+    function cleanExit() { 
+      if (currentConnection) currentConnection.close(); 
+      clearLoops(); 
+      safelyStopCameraTracks();
+      window.location.href = privateRoomId ? "../chat/" : "#"; 
+      switchStage(stageLobby); 
+    }
 
     btnStart.addEventListener('click', startMatchmaking);
     btnCancel.addEventListener('click', cancelSearch);
-    btnNext.addEventListener('click', startMatchmaking);
+    btnNext.addEventListener('click', async () => {
+      clearLoops();
+      safelyStopCameraTracks();
+      await startMatchmaking();
+    });
     btnExit.addEventListener('click', cleanExit);
   </script>
 </body>
