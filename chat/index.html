@@ -446,23 +446,22 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* ALPHABETICALLY ORGANIZED COMMAND LIST ENGINE */
 const EX_COMMANDS = [
-  { name: "/admin", desc: "Changes user permissions to allow for more control" },
-  { name: "/ban", desc: "Bans a user from using or seeing chat for a chosen amount oftime" },
-  { name: "/deleteall", desc: "Deletes all chat messages and whispers" },
-  { name: "/deleteuser", desc: "Removes user from database entirely" },
-  { name: "/headadmin", desc: "Changes user permissions to allow for full control" },
-  { name: "/mute", desc: "Mute a specific user for a chosen amount of time" },
-  { name: "/omoggle", desc: "Invite a user to an Omoggle duel" },
-  { name: "/permaban", desc: "Permanently bans a user from chat until unbanned" },
-  { name: "/subscription", desc: "Assigns rank (basic or premium) to user" },
-  { name: "/unadmin", desc: "Removes admin permissions from a user" },
-  { name: "/unban", desc: "Unbans a user from the chat" },
+  { name: "/admin", desc: "Elevate user parameters to Room Admin" },
+  { name: "/ban", desc: "Bans a user from even seeing the chat" },
+  { name: "/deleteall", desc: "Deletes all whispers and chat messages" },
+  { name: "/deleteuser", desc: "Removes user from database completely" },
+  { name: "/headadmin", desc: "Elevate user parameters to Head Admin (Owner)" },
+  { name: "/mute", desc: "Mute a specific chat participant. Syntax: /mute @user mins" },
+  { name: "/omoggle", desc: "Invite a user to a private Omoggle duel session" },
+  { name: "/permaban", desc: "Permanently bans a user from chat" },
+  { name: "/subscription", desc: "Assigns permanent rank (basic or premium) to user" },
+  { name: "/unadmin", desc: "Removes admin parameters from a user" },
+  { name: "/unban", desc: "Unbans a user from the platform" },
   { name: "/unheadadmin", desc: "Removes headadmin status from a user" },
-  { name: "/unmute", desc: "Unmutes a user from the chat" },
-  { name: "/undo", desc: "Undos your last edit or delete" },
-  { name: "/users", desc: "Shows a list of all current users" },
+  { name: "/unmute", desc: "Unmutes a specific chat participant" },
+  { name: "/undo", desc: "Undos your last edit or deletion action" },
+  { name: "/users", desc: "Returns a structured overview list of registered users" },
   { name: "/w", desc: "Whisper privately to other users" }
 ].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -496,12 +495,17 @@ let editingMessageId = null;
 let editingCollectionTarget = "messages";
 let allMessagesLoaded = false; 
 
-/* UNDO LOG PARAMETER STACK STORAGE */
 let lastActionLog = null; 
+let activeMuteInterval = null; // Keeps track of global countdown engine to avoid duplication stacks
 
-/* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
+/* 2-SECOND CONNECTION FAILSAFE TIMEOUT (FIXED LOOPING RULE) */
 setTimeout(() => {
   if (auth.currentUser && !initialSnapshotReceived) {
+    // If we have already parsed a ban on the user instance block, suppress loops entirely
+    if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) {
+      console.log("Failsafe suppressed: Banned state confirmed.");
+      return;
+    }
     console.warn("Failsafe triggered: Chat channel frozen. Forcing reload...");
     window.location.reload();
   }
@@ -529,6 +533,26 @@ onAuthStateChanged(auth, async (user) => {
       
       if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) {
         handleBannedUserDisplay();
+      } else {
+        // Restore input visual layers in case an admin lifted a penalty parameter live
+        const inputRow = document.querySelector(".input-row");
+        if (inputRow) inputRow.style.display = "flex";
+
+        /* FIX: INJECTS AND TRIPPLES LIVE MUTE NOTICE ON PAGE VISIT IMMEDIATELY */
+        if (currentUserMutedUntil && Date.now() < currentUserMutedUntil) {
+          startCooldownTimer(currentUserMutedUntil);
+        } else if (activeMuteInterval) {
+          // Instantly clear out countdown parameters if unmuted via admin backend query
+          clearInterval(activeMuteInterval);
+          activeMuteInterval = null;
+          const btn = document.getElementById("send-message-btn");
+          const textContainer = document.getElementById("cooldown-timer-text");
+          if (btn) btn.disabled = false;
+          if (textContainer) {
+            textContainer.style.visibility = "hidden";
+            textContainer.textContent = "";
+          }
+        }
       }
     } else {
       setDoc(userRef, {
@@ -547,12 +571,37 @@ onAuthStateChanged(auth, async (user) => {
   addLogout();
 });
 
+/* FIX: COMPUTES BAN TIMES AND RENDERS CLEAN ADMIN NOTICES OVER SCREEN LAYOUT */
 function handleBannedUserDisplay() {
   const scroller = document.getElementById("message-scroller");
   const inputRow = document.querySelector(".input-row");
   if(inputRow) inputRow.style.display = "none";
+  
   if(scroller) {
-    scroller.innerHTML = `<div style="text-align: center; color: #ef4444; font-family: var(--font-display); font-size: 1.2rem; font-weight: 800; padding: 3rem 1rem;">You have been banned from this chat channel.</div>`;
+    let textSummaryString = "";
+    const deltaMs = currentUserBannedUntil - Date.now();
+    
+    // Check if remaining calculation timeline crosses over 10 years (Standard /permaban metric check)
+    if (deltaMs > 10 * 365 * 24 * 60 * 60 * 1000) {
+      textSummaryString = "You are permanently banned.";
+    } else {
+      const parsedTotalMinutes = Math.ceil(deltaMs / (60 * 1000));
+      const hoursLeft = Math.floor(parsedTotalMinutes / 60);
+      const minutesLeft = parsedTotalMinutes % 60;
+      
+      let segments = [];
+      if (hoursLeft > 0) segments.push(`${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''}`);
+      if (minutesLeft > 0) segments.push(`${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}`);
+      
+      textSummaryString = `You are banned for ${segments.length > 0 ? segments.join(" and ") : "a few seconds"}.`;
+    }
+
+    scroller.innerHTML = `
+      <div style="text-align: center; font-family: var(--font-display); padding: 4rem 1rem; width: 100%;">
+        <div style="color: #ef4444; font-size: 1.35rem; font-weight: 800; margin-bottom: 0.6rem; letter-spacing: -0.5px;">${textSummaryString}</div>
+        <div style="color: var(--text-muted); font-size: 0.95rem; font-weight: 600;">Ask an admin if you think this is a mistake.</div>
+      </div>
+    `;
   }
 }
 
@@ -607,10 +656,19 @@ function showLocalSystemMessage(text, isError = false) {
   }
 }
 
-/* MUTE & COOLDOWN TIMER LAYOUT MANAGER COMBINED */
+/* MUTE & COOLDOWN TIMER LAYOUT MANAGER COMBINED (SAFE TIMER DECOUPLING UPDATED) */
 function startCooldownTimer(forcedMuteTime = null) {
   const btn = document.getElementById("send-message-btn");
   const textContainer = document.getElementById("cooldown-timer-text");
+
+  if (activeMuteInterval) clearInterval(activeMuteInterval);
+
+  if (forcedMuteTime && forcedMuteTime <= Date.now()) {
+    btn.disabled = false;
+    textContainer.style.visibility = "hidden";
+    textContainer.textContent = "";
+    return;
+  }
 
   btn.disabled = true;
   textContainer.style.visibility = "visible";
@@ -625,7 +683,8 @@ function startCooldownTimer(forcedMuteTime = null) {
     }
 
     if (remaining <= 0) {
-      clearInterval(countdownInterval);
+      clearInterval(activeMuteInterval);
+      activeMuteInterval = null;
       btn.disabled = false;
       textContainer.style.visibility = "hidden";
       textContainer.textContent = "";
@@ -634,7 +693,9 @@ function startCooldownTimer(forcedMuteTime = null) {
         const totalSecs = Math.ceil(remaining / 1000);
         const mins = Math.floor(totalSecs / 60);
         const secs = totalSecs % 60;
-        const timeStr = mins > 0 ? `${mins} minute(s) ${secs} second(s)` : `${secs} second(s)`;
+        let timeStr = "";
+        if (mins > 0) timeStr += `${mins} minute${mins > 1 ? 's' : ''} `;
+        timeStr += `${secs} second${secs !== 1 ? 's' : ''}`;
         textContainer.textContent = `You are muted for ${timeStr}`;
       } else {
         const secondsLeft = Math.ceil(remaining / 1000);
@@ -644,7 +705,7 @@ function startCooldownTimer(forcedMuteTime = null) {
   };
 
   updateDisplay();
-  const countdownInterval = setInterval(updateDisplay, 100);
+  activeMuteInterval = setInterval(updateDisplay, 100);
 }
 
 /* CHAT SETUP */
@@ -663,7 +724,6 @@ async function startChat(user) {
     let textToSend = input.value.trim();
     if (!textToSend) return;
 
-    /* BLOCKS MUTED PARTICIPANTS WITH COOLDOWN BANNER INTERFACE */
     if (currentUserMutedUntil && Date.now() < currentUserMutedUntil) {
       startCooldownTimer(currentUserMutedUntil);
       return;
@@ -793,7 +853,6 @@ async function startChat(user) {
       // 11. /permaban
       if (commandKey === "/permaban" && isAdminPlus) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /permaban @username", true); return; }
-        // Sets expiration timestamp 100 years out
         await updateDoc(doc(db, "users", targetUser.id), { bannedUntil: Date.now() + (100 * 365 * 24 * 60 * 60 * 1000) });
         showLocalSystemMessage(`Permanently banned @${targetUser.username} from entering chat framework loops.`, false);
         return;
@@ -821,7 +880,7 @@ async function startChat(user) {
         return;
       }
 
-      /* 14. /undo CONFIGURATION CORE EXECUTOR */
+      // 14. /undo
       if (commandKey === "/undo") {
         if (!lastActionLog) { showLocalSystemMessage("No valid local environment modifications recorded on the action track stack.", true); return; }
         try {
@@ -1169,7 +1228,6 @@ function displayMessage(scroller, msgData) {
     };
   }
 
-  /* DETECTS DELETION ACTIONS AND CACHES LOG HISTORIES FOR UNDO */
   if (deleteBtn) {
     deleteBtn.onclick = async () => {
       try {
