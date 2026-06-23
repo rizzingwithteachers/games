@@ -46,7 +46,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Ambient Subtle Noise Background Overlay */
     body::before {
       content: "";
       position: fixed;
@@ -56,7 +55,6 @@
       z-index: 1000;
     }
 
-    /* ── NAV BAR Component ────────────────────────────────── */
     header {
       background: rgba(12, 13, 25, 0.75);
       backdrop-filter: blur(20px);
@@ -161,7 +159,6 @@
       left: 100%;
     }
 
-    /* ── UTILITY BUTTONS & INPUTS ─────────────────────────── */
     .btn-primary {
       background: var(--accent);
       color: #fff;
@@ -245,7 +242,6 @@
       -webkit-overflow-scrolling: touch; 
     }
 
-    /* Chat Message Blocks */
     .msg-block { display: flex; gap: 1rem; align-items: flex-start; transition: opacity 0.2s ease; position: relative; }
     .msg-block.pending { opacity: 0.4; filter: brightness(0.8); }
 
@@ -256,22 +252,18 @@
     .msg-content h5 span { font-size: 0.75rem; color: var(--text-muted); margin-left: 8px; font-weight: 500; }
     .msg-content p { color: #cbd5e1; font-size: 0.95rem; line-height: 1.7; margin: 0; }
 
-    /* ── STATIC MODERATION SYSTEM STYLES ──────────────────── */
     .msg-controls-tray { position: absolute; right: 10px; top: 12px; display: flex; gap: 8px; align-items: center; }
     
     .action-control-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
     .action-control-btn:hover { color: var(--text); border-color: var(--text-muted); }
     .action-control-btn.btn-delete-msg:hover { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.4); }
 
-    /* Custom Image Handling Optimization Rule Matrix */
     .tray-icon-img { width: 14px; height: 14px; object-fit: contain; pointer-events: none; opacity: 0.8; transition: opacity 0.2s var(--ease); }
     .action-control-btn:hover .tray-icon-img { opacity: 1; }
 
-    /* Identity Badge Custom Styling Rules */
     .badge-admin { color: #3b82f6; font-size: 0.72rem; background: rgba(59,130,246,0.12); padding: 2px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(59,130,246,0.2); text-transform: uppercase; margin-left: 4px; }
     .badge-owner { color: #f59e0b; font-size: 0.72rem; background: rgba(245,158,11,0.12); padding: 2px 6px; border-radius: 99px; font-weight: 700; border: 1px solid rgba(245,158,11,0.2); text-transform: uppercase; margin-left: 4px; }
 
-    /* Omoggle Inline Duel Card Notification Boxes */
     .duel-card { background: #111224; border: 1px solid rgba(108, 99, 255, 0.2); border-radius: var(--radius-m); padding: 1rem; margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.75rem; max-width: 440px; }
     .duel-card-msg { font-size: 0.9rem; color: #cbd5e1; font-weight: 500; }
     .duel-card-actions { display: flex; gap: 8px; }
@@ -281,7 +273,6 @@
     .btn-duel-decline { background: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: background 0.2s ease; }
     .btn-duel-decline:hover { background: #dc2626; }
 
-    /* Message Input Container */
     .input-container { 
       padding: 0 1.5rem 1.5rem; 
       position: relative; 
@@ -309,7 +300,6 @@
 
     .send-btn { min-width: 130px; }
 
-    /* Cooldown Banner Styling */
     .cooldown-text {
       color: #64748b;
       font-size: 0.85rem;
@@ -331,7 +321,6 @@
       transition: none !important;
     }
 
-    /* Autocomplete Box */
     .suggestions-popover {
       position: absolute;
       bottom: calc(100% - 4px);
@@ -366,7 +355,6 @@
     .suggestion-item .item-icon { font-weight: bold; color: #a855f7; }
     .suggestion-item .item-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; color: #fff; }
 
-    /* ── ANIMATIONS ───────────────────────────────────────── */
     @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideInLeft { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
     @keyframes slideInRight { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
@@ -442,7 +430,7 @@ import {
   doc,
   getDoc,
   where
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js"; // <-- Changed to firestore.js
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 /* FIREBASE CONFIG */
 const firebaseConfig = {
@@ -476,15 +464,15 @@ const MESSAGE_COOLDOWN = 2000;
 let lastLoadedTimestamp = null;
 let isLoadingMore = false;
 let initialSnapshotReceived = false; 
+let isFirstLoad = true; // <-- Added to prevent updates from breaking scrolling
 
 let dbPublicMessages = [];
 let dbPrivateMessages = [];
 let dbHistoricalMessages = []; 
 let localPendingQueue = [];
 
-// Autocomplete Cache Arrays
 let allRegisteredUsers = []; 
-let localUsersCache = [];     
+let localUsersCache = [];      
 
 let activeSuggestionIndex = 0;
 let currentMentionTriggerIdx = -1; 
@@ -742,7 +730,7 @@ async function startChat(user) {
     };
 
     localPendingQueue.push(pendingMsgData);
-    renderMessages();
+    renderMessages(true); // <-- Force view down to reveal your new pending message layout box
 
     try {
       if (targetUsernames.length > 0) {
@@ -845,11 +833,9 @@ function listenForNewMessages(user) {
     dbPrivateMessages = snapshot.docs.map(doc => {
       const data = doc.data();
       
-      // EXCLUSIVE ONE-TIME DUAL REDIRECTION ROUTER
       if (data.isOmoggleInvite && data.inviteStatus === "accepted") {
         const sessionRedirectToken = `omoggle_redirected_${doc.id}`;
         
-        // Only run redirect sequence if browser tab hasn't already done it
         if (!sessionStorage.getItem(sessionRedirectToken)) {
           sessionStorage.setItem(sessionRedirectToken, "true");
           
@@ -867,9 +853,12 @@ function listenForNewMessages(user) {
   });
 }
 
-function renderMessages() {
+function renderMessages(forceScrollDown = false) {
   const scroller = document.getElementById("message-scroller");
+  
+  // 1. Capture scroll states relative to current view positions before cleaning structural elements
   const isPinnedToBottom = scroller.scrollHeight - scroller.clientHeight <= scroller.scrollTop + 30;
+  const cachedScrollTop = scroller.scrollTop;
 
   updateAutocompleteCacheFromLoadedMessages();
 
@@ -905,8 +894,15 @@ function renderMessages() {
   allMessages.forEach(msg => displayMessage(scroller, msg));
   localPendingQueue.forEach(pendingMsg => displayMessage(scroller, pendingMsg));
   
-  if (isPinnedToBottom || initialSnapshotReceived) {
+  // 2. Adjust alignment rules logically based on action type
+  if (isFirstLoad && dbPublicMessages.length > 0) {
     scroller.scrollTop = scroller.scrollHeight;
+    isFirstLoad = false;
+  } else if (isPinnedToBottom || forceScrollDown) {
+    scroller.scrollTop = scroller.scrollHeight;
+  } else {
+    // Keeps view absolutely locked right where you were looking during message editing/deleting
+    scroller.scrollTop = cachedScrollTop;
   }
 }
 
