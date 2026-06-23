@@ -109,7 +109,6 @@ let signUpMode = false;
 
 /* REAL-TIME SPACE FILTER STRIPPER */
 nameInput.addEventListener("input", (e) => {
-  // Instantly deletes spaces if a user types or pastes them in
   e.target.value = e.target.value.replace(/\s/g, "");
 });
 
@@ -120,7 +119,6 @@ async function signUp(username, emailVal, passwordVal) {
     return false;
   }
 
-  // Backup guard to completely stop submission if spaces are detected
   if (/\s/.test(username)) {
     alert("Username cannot contain spaces!");
     return false;
@@ -128,9 +126,12 @@ async function signUp(username, emailVal, passwordVal) {
 
   const cred = await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
 
+  // OPTIMIZATION: Provision default role level and entry tier rank properties instantly on create
   await setDoc(doc(db, "users", cred.user.uid), {
     username: username.trim(),
     email: emailVal,
+    role: "user",
+    rank: "basic",
     createdAt: serverTimestamp()
   });
 
@@ -148,8 +149,6 @@ toggle.addEventListener("click", () => {
   signUpMode = !signUpMode;
 
   nameField.classList.toggle("hidden", !signUpMode);
-  
-  // Dynamically toggle the required attribute based on sign up mode
   nameInput.required = signUpMode;
 
   title.textContent = signUpMode ? "Create account" : "Sign in";
@@ -161,7 +160,7 @@ toggle.addEventListener("click", () => {
   toggle.textContent = signUpMode ? "Sign in" : "Create account";
 });
 
-/* FORM */
+/* FORM SUBMISSION */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -192,7 +191,7 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-/* FIXED AUTH CHECK (NO LOOP + NO RANDOM REDIRECTS) */
+/* FIXED AUTH CHECK */
 onAuthStateChanged(auth, (user) => {
   if (!user) return;
 });
