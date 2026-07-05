@@ -477,23 +477,37 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    onAuthStateChanged(auth, (user) => {
-      const container = document.getElementById('auth-button-container');
+    const container = document.getElementById('auth-button-container');
+
+    if (container) {
+      container.innerHTML = '';
+      container.style.display = 'none';
+    }
+
+    const renderAuthState = (user) => {
+      if (!container) return;
       if (user) {
         container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-        document.getElementById('logout-btn').addEventListener('click', async (e) => {
-          e.preventDefault();
-          try {
-            await signOut(auth);
-            window.location.reload();
-          } catch (err) {
-            console.error('Logout error:', err);
-          }
-        });
+        container.style.display = '';
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+              await signOut(auth);
+              window.location.reload();
+            } catch (err) {
+              console.error('Logout error:', err);
+            }
+          });
+        }
       } else {
         container.innerHTML = '<a href="../login/" class="nav-auth-btn">Sign In</a>';
+        container.style.display = '';
       }
-    });
+    };
+
+    onAuthStateChanged(auth, (user) => renderAuthState(user));
   </script>
 
 </body>

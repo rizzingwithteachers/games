@@ -151,18 +151,27 @@
     const settingsWrapper = document.getElementById('settings-wrapper');
     const navAuthContainer = document.getElementById('auth-button-container');
 
-    onAuthStateChanged(auth, (user) => {
+    if (navAuthContainer) {
+      navAuthContainer.innerHTML = '';
+      navAuthContainer.style.display = 'none';
+    }
+
+    const renderAuthState = (user) => {
       if (user) {
         navAuthContainer.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-        document.getElementById('logout-btn').addEventListener('click', async (e) => {
-          e.preventDefault();
-          try {
-            await signOut(auth);
-            window.location.reload();
-          } catch (err) {
-            console.error('Logout error:', err);
-          }
-        });
+        navAuthContainer.style.display = '';
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+          logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+              await signOut(auth);
+              window.location.reload();
+            } catch (err) {
+              console.error('Logout error:', err);
+            }
+          });
+        }
 
         settingsWrapper.innerHTML = `
           <form id="username-form" class="settings-section">
@@ -247,6 +256,7 @@
 
       } else {
         navAuthContainer.innerHTML = '<a href="../login/" class="nav-auth-btn">Sign In</a>';
+        navAuthContainer.style.display = '';
         settingsWrapper.innerHTML = `
           <div class="logged-out-msg">
             <p>Please sign in to view and change your settings.</p>

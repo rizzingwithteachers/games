@@ -497,6 +497,10 @@ let allMessagesLoaded = false;
 
 let lastActionLog = null; 
 let activeMuteInterval = null;
+let ephemeralSystemMessages = [];
+let processedOmoggleRedirects = new Set();
+let initialPublicSnapshotHandled = false;
+let initialPrivateSnapshotHandled = false;
 
 /* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
@@ -513,6 +517,12 @@ setTimeout(() => {
 /* AUTH CHECK & SYNC USER ROLES / MUTE STATE */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
+    currentUser = null;
+    currentUsername = "User";
+    currentUserRole = "user";
+    currentUserMutedUntil = 0;
+    currentUserBannedUntil = 0;
+    updateAuthButtonState(false);
     window.location.replace("../login/");
     return;
   }
@@ -563,8 +573,8 @@ onAuthStateChanged(auth, async (user) => {
     }
   });
 
+  updateAuthButtonState(true);
   await startChat(user);
-  addLogout();
 });
 
 function handleBannedUserDisplay() {
@@ -622,30 +632,106 @@ async function loadAndCacheAllUsers() {
   }
 }
 
+function clearEphemeralSystemMessages() {
+  ephemeralSystemMessages = [];
+}
+
 function showLocalSystemMessage(text, isError = false) {
-  const scroller = document.getElementById("message-scroller");
-  const isPinnedToBottom = scroller.scrollHeight - scroller.clientHeight <= scroller.scrollTop + 30;
-  
-  const div = document.createElement("div");
-  div.className = "msg-block";
-  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const textColor = isError ? "#ef4444" : "#6c63ff";
+  ephemeralSystemMessages.push({
+    id: `system-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    text,
+    isError,
+    isSystemMessage: true,
+    username: "Server",
+    timestamp: new Date()
+  });
+  renderMessages(true);
+}
 
-  div.innerHTML = `
-    <div class="msg-avatar" style="background: #242549; color: #fff;">S</div>
-    <div class="msg-content">
-      <div class="msg-top">
-        <h5>Server <span>${time}</span></h5>
-      </div>
-      <p style="color: ${textColor}; font-weight: 600;">${text}</p>
-    </div>
-  `;
+function updateAuthButtonState(isLoggedIn) {
+  const container = document.getElementById('auth-button-container');
+  if (!container) return;
 
-  scroller.appendChild(div);
-  
-  if (isPinnedToBottom || initialSnapshotReceived) {
-    scroller.scrollTop = scroller.scrollHeight;
+  if (isLoggedIn) {
+    container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
+    container.style.display = '';
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.onclick = async (e) => {
+        e.preventDefault();
+        try {
+          await signOut(auth);
+          window.location.href = "../login/";
+        } catch (err) {
+          console.error('Logout error:', err);
+        }
+      };
+    }
+  } else {
+    container.innerHTML = '<a href="../login/" class="nav-auth-btn">Sign In</a>';
+    container.style.display = '';
   }
+}
+
+async function ensureNotificationPermission() {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') return 'unsupported';
+  if (Notification.permission === 'granted') return 'granted';
+  if (Notification.permission === 'denied') return 'denied';
+  return await Notification.requestPermission();
+}
+
+function getMentionTargets(text) {
+  if (!text) return [];
+  const matches = text.match(/@([a-zA-Z0-9_\-]+)/g) || [];
+  return [...new Set(matches.map(match => match.slice(1).toLowerCase()))];
+}
+
+function shouldNotifyForMention(msgData) {
+  if (!msgData || !msgData.text || !currentUser || msgData.senderId === currentUser.uid || msgData.userId === currentUser.uid) return false;
+
+  const targets = getMentionTargets(msgData.text);
+  if (targets.length === 0) return false;
+
+  const currentName = (currentUsername || '').toLowerCase();
+  const senderRole = (msgData.role || 'user').toLowerCase();
+  const isAdminPlus = senderRole === 'admin' || senderRole === 'owner';
+  const mentionsMod = targets.includes('mod');
+  const mentionsSpecial = targets.includes('everyone') || targets.includes('here');
+
+  if (mentionsMod) {
+    return currentUserRole === 'admin' || currentUserRole === 'owner';
+  }
+
+  if (mentionsSpecial) {
+    return isAdminPlus;
+  }
+
+  return targets.includes(currentName);
+}
+
+function maybeNotifyForMention(msgData) {
+  if (!shouldNotifyForMention(msgData)) return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (document.visibilityState === 'visible' && document.hasFocus()) return;
+
+  const targets = getMentionTargets(msgData.text || '');
+  const senderName = msgData.username || 'Someone';
+  const cleanBody = (msgData.text || '').replace(/\s+/g, ' ').trim();
+  const shortBody = cleanBody.length > 120 ? `${cleanBody.slice(0, 117)}...` : cleanBody;
+
+  let notificationBody = `${senderName} mentioned you in chat`;
+  if (targets.includes('mod')) {
+    notificationBody = `${senderName} mentioned moderators in chat`;
+  } else if (targets.includes('everyone')) {
+    notificationBody = `${senderName} mentioned everyone in chat`;
+  } else if (targets.includes('here')) {
+    notificationBody = `${senderName} mentioned here in chat`;
+  }
+
+  new Notification('Chat mention', {
+    body: notificationBody,
+    icon: '../assets/chat-pencil.svg'
+  });
 }
 
 function startCooldownTimer(forcedMuteTime = null) {
@@ -704,6 +790,7 @@ async function startChat(user) {
   const btn = document.getElementById("send-message-btn");
   const scroller = document.getElementById("message-scroller");
 
+  await ensureNotificationPermission();
   await loadAndCacheAllUsers();
 
   listenForNewMessages(user);
@@ -742,6 +829,7 @@ async function startChat(user) {
 
     input.value = "";
     lastMessageTime = now;
+    clearEphemeralSystemMessages();
     
     startCooldownTimer();
     closePopover();
@@ -898,12 +986,14 @@ async function startChat(user) {
       text: isOmoggleCommand && !parsedText ? "Do you want to duel in Omoggle?" : parsedText,
       username: currentUsername,
       userId: user.uid,
+      senderId: user.uid,
       avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
       timestamp: null,
       isPending: true,
       isWhisper: targetUsernames.length > 0,
       isOmoggleInvite: isOmoggleCommand,
       inviteStatus: isOmoggleCommand ? "pending" : null,
+      isSystemMessage: isOmoggleCommand,
       role: currentUserRole,
       clientSideId: clientSideId
     };
@@ -940,6 +1030,7 @@ async function startChat(user) {
         if (isOmoggleCommand) {
           challengePayload.isOmoggleInvite = true;
           challengePayload.inviteStatus = "pending";
+          challengePayload.isSystemMessage = true;
         }
 
         await addDoc(collection(db, "whispers"), challengePayload);
@@ -993,7 +1084,18 @@ function updateAutocompleteCacheFromLoadedMessages() {
 function listenForNewMessages(user) {
   const publicQ = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(20));
   onSnapshot(publicQ, (snapshot) => {
-    initialSnapshotReceived = true; 
+    initialSnapshotReceived = true;
+
+    if (!initialPublicSnapshotHandled) {
+      initialPublicSnapshotHandled = true;
+    } else {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          maybeNotifyForMention({ ...change.doc.data(), id: change.doc.id, isWhisper: false });
+        }
+      });
+    }
+
     dbPublicMessages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isWhisper: false }));
     if (!lastLoadedTimestamp && snapshot.docs.length > 0) {
       lastLoadedTimestamp = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
@@ -1007,24 +1109,38 @@ function listenForNewMessages(user) {
 
   const privateQ = query(collection(db, "whispers"), where("participants", "array-contains", user.uid));
   onSnapshot(privateQ, (snapshot) => {
+    if (!initialPrivateSnapshotHandled) {
+      initialPrivateSnapshotHandled = true;
+    } else {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const incomingMessage = { ...change.doc.data(), id: change.doc.id, isWhisper: true };
+          maybeNotifyForMention(incomingMessage);
+
+          if (incomingMessage.isOmoggleInvite && incomingMessage.inviteStatus === "accepted") {
+            const sessionRedirectToken = `omoggle_redirected_${change.doc.id}`;
+            const alreadyHandled = processedOmoggleRedirects.has(change.doc.id) || sessionStorage.getItem(sessionRedirectToken) === "true" || localStorage.getItem(sessionRedirectToken) === "true";
+            
+            if (!alreadyHandled) {
+              processedOmoggleRedirects.add(change.doc.id);
+              sessionStorage.setItem(sessionRedirectToken, "true");
+              localStorage.setItem(sessionRedirectToken, "true");
+              
+              const currentAuthenticatedUid = auth.currentUser ? auth.currentUser.uid : user.uid;
+              const roleIdentityString = currentAuthenticatedUid === incomingMessage.senderId ? "host" : "guest";
+              
+              setTimeout(() => {
+                if (window.location.pathname.includes('/omoggle/')) return;
+                window.location.href = `../omoggle/?room=${change.doc.id}&role=${roleIdentityString}&hostName=${encodeURIComponent(incomingMessage.username)}`;
+              }, 800);
+            }
+          }
+        }
+      });
+    }
+
     dbPrivateMessages = snapshot.docs.map(doc => {
       const data = doc.data();
-      
-      if (data.isOmoggleInvite && data.inviteStatus === "accepted") {
-        const sessionRedirectToken = `omoggle_redirected_${doc.id}`;
-        
-        if (!sessionStorage.getItem(sessionRedirectToken)) {
-          sessionStorage.setItem(sessionRedirectToken, "true");
-          
-          const currentAuthenticatedUid = auth.currentUser ? auth.currentUser.uid : user.uid;
-          const roleIdentityString = currentAuthenticatedUid === data.senderId ? "host" : "guest";
-          
-          /* OPTIMIZATION: Appends the sender's username parameter safely to sync user names instantly on the battleground stage */
-          setTimeout(() => {
-            window.location.href = `../omoggle/?room=${doc.id}&role=${roleIdentityString}&hostName=${encodeURIComponent(data.username)}`;
-          }, 800);
-        }
-      }
       return { ...data, id: doc.id, isWhisper: true };
     });
     renderMessages();
@@ -1053,7 +1169,10 @@ function renderMessages(forceScrollDown = false) {
     scroller.appendChild(banner);
   }
 
-  let allMessages = [...dbHistoricalMessages, ...dbPublicMessages, ...dbPrivateMessages];
+  const regularMessages = [...dbHistoricalMessages, ...dbPublicMessages, ...dbPrivateMessages];
+  const hasRegularMessages = regularMessages.some(msg => !msg.isSystemMessage) || localPendingQueue.some(msg => !msg.isSystemMessage);
+  const visibleEphemeralMessages = hasRegularMessages ? [] : ephemeralSystemMessages;
+  let allMessages = [...visibleEphemeralMessages, ...regularMessages];
   
   const seenIds = new Set();
   allMessages = allMessages.filter(msg => {
@@ -1110,7 +1229,7 @@ function displayMessage(scroller, msgData) {
   if (msgData.isOmoggleInvite) {
     let internalDuelPanelHTML = "";
     let inviteContextLineText = "";
-    const userIsChallengeSender = currentUser && currentUser.uid === msgData.senderId;
+    const userIsChallengeSender = currentUser && (currentUser.uid === msgData.senderId || currentUser.uid === msgData.userId);
 
     if (msgData.inviteStatus === "pending") {
       if (!userIsChallengeSender) {
@@ -1144,6 +1263,16 @@ function displayMessage(scroller, msgData) {
         </div>
         ${inviteContextLineText}
         ${internalDuelPanelHTML}
+      </div>
+    `;
+  } else if (msgData.isSystemMessage) {
+    layoutStructuralString = `
+      <div class="msg-avatar" style="background: #242549; color: #fff;">S</div>
+      <div class="msg-content">
+        <div class="msg-top">
+          <h5>Server <span>${time}</span></h5>
+        </div>
+        <p style="color: ${msgData.isError ? '#ef4444' : '#6c63ff'}; font-weight: 600;">${escapeHtml(msgData.text || "")}</p>
       </div>
     `;
   } else {
@@ -1221,6 +1350,24 @@ function displayMessage(scroller, msgData) {
   scroller.appendChild(div);
 }
 
+function getMentionSuggestionItems(searchStr = "") {
+  const normalizedSearch = (searchStr || "").toLowerCase();
+  const isAdminPlus = currentUserRole === "admin" || currentUserRole === "owner";
+  const specialItems = [
+    { username: "mod", avatar: "@", isSpecial: true },
+    ...(isAdminPlus ? [
+      { username: "everyone", avatar: "@", isSpecial: true },
+      { username: "here", avatar: "@", isSpecial: true }
+    ] : [])
+  ].filter(item => item.username.startsWith(normalizedSearch));
+
+  const filteredUsers = localUsersCache
+    .filter(u => u.username.toLowerCase().startsWith(normalizedSearch) && u.username.toLowerCase() !== currentUsername.toLowerCase())
+    .map(u => ({ ...u, isSpecial: false }));
+
+  return [...specialItems, ...filteredUsers];
+}
+
 function setupAutocompleteEngine(input) {
   const popover = document.getElementById("suggestions-popover");
 
@@ -1289,10 +1436,7 @@ function setupAutocompleteEngine(input) {
         }
 
         const cleanSearch = searchStr.toLowerCase();
-        const filtered = localUsersCache.filter(u => 
-          u.username.toLowerCase().startsWith(cleanSearch) && 
-          u.username.toLowerCase() !== currentUsername.toLowerCase()
-        );
+        const filtered = getMentionSuggestionItems(cleanSearch);
 
         if (filtered.length > 0) {
           currentMentionTriggerIdx = wordStartIdx;
@@ -1308,10 +1452,7 @@ function setupAutocompleteEngine(input) {
       
       if (!/\s/.test(searchStr)) {
         currentMentionTriggerIdx = lastAtIdx;
-        const filtered = localUsersCache.filter(u => 
-          u.username.toLowerCase().startsWith(searchStr) && 
-          u.username.toLowerCase() !== currentUsername.toLowerCase()
-        );
+        const filtered = getMentionSuggestionItems(searchStr);
         
         if (filtered.length > 0) {
           showMentions(filtered, "general-mention");
@@ -1390,9 +1531,10 @@ function showMentions(users, type) {
   users.forEach((u, idx) => {
     const div = document.createElement("div");
     div.className = "suggestion-item" + (idx === 0 ? " selected" : "");
+    const displayName = u.isSpecial ? `@${u.username}` : `@${u.username}`;
     div.innerHTML = `
-      <div class="item-avatar" style="background: linear-gradient(135deg, ${getGradient(u.username)});">${u.avatar}</div>
-      <strong>@${u.username}</strong>
+      <div class="item-avatar" style="background: linear-gradient(135deg, ${getGradient(u.username)});">${u.avatar || u.username[0].toUpperCase()}</div>
+      <strong>${displayName}</strong>
     `;
     
     div.onclick = (e) => {
@@ -1404,21 +1546,22 @@ function showMentions(users, type) {
       const cmdParts = currentVal.trim().split(/\s+/);
       const routingContextCmdStr = cmdParts[0];
 
+      const mentionValue = u.username;
       if (currentMentionType === "command-inline") {
-        input.value = routingContextCmdStr + " @" + u.username + " ";
+        input.value = routingContextCmdStr + " @" + mentionValue + " ";
         newCursorPos = input.value.length;
       } else if (currentMentionType === "whisper-target") {
         const beforeWord = currentVal.substring(0, currentMentionTriggerIdx);
         let spaceAfter = currentVal.indexOf(" ", currentMentionTriggerIdx);
         let afterWord = spaceAfter !== -1 ? currentVal.substring(spaceAfter) : "";
-        input.value = beforeWord + "@" + u.username + (afterWord ? afterWord : " ");
-        newCursorPos = (beforeWord + "@" + u.username + " ").length;
+        input.value = beforeWord + "@" + mentionValue + (afterWord ? afterWord : " ");
+        newCursorPos = (beforeWord + "@" + mentionValue + " ").length;
       } else {
         const beforeTrigger = currentVal.substring(0, currentMentionTriggerIdx);
         let spaceAfter = currentVal.indexOf(" ", currentMentionTriggerIdx);
         let afterWord = spaceAfter !== -1 ? currentVal.substring(spaceAfter) : " ";
-        input.value = beforeTrigger + "@" + u.username + (afterWord.startsWith(" ") ? afterWord : " " + afterWord);
-        newCursorPos = (beforeTrigger + "@" + u.username + " ").length;
+        input.value = beforeTrigger + "@" + mentionValue + (afterWord.startsWith(" ") ? afterWord : " " + afterWord);
+        newCursorPos = (beforeTrigger + "@" + mentionValue + " ").length;
       }
 
       input.focus();
@@ -1493,22 +1636,6 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, m => map[m]);
 }
 
-function addLogout() {
-  const container = document.getElementById('auth-button-container');
-  if (!container) return;
-  const a = document.createElement("a");
-  a.textContent = "Logout";
-  a.href = "#";
-  a.className = "nav-auth-btn";
-  a.id = "logout-btn";
-  a.onclick = async (e) => {
-    e.preventDefault();
-    await signOut(auth);
-    window.location.href = "../login/";
-  };
-  container.innerHTML = '';
-  container.appendChild(a);
-}
 </script>
 </body>
 </html>
