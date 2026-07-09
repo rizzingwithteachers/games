@@ -35,9 +35,41 @@
     }
     .game-thumb { width: 100%; aspect-ratio: 4/3; background: #181b33; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 600; font-size: 0.9rem; border-bottom: 1px solid var(--border); transition: filter 0.3s var(--ease); }
     .game-card:hover .game-thumb { filter: brightness(1.15); }
-    .game-info { padding: 1.2rem; }
-    .game-info h4 { font-size: 1rem; margin-bottom: 0.4rem; font-family: var(--font-display); }
+    
+    /* Layout fix for text on left, SVG on right */
+    .game-info { 
+      padding: 1.2rem; 
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    /* Natural text-wrapping protection */
+    .game-info h4 { 
+      font-size: 1rem; 
+      margin: 0; 
+      font-family: var(--font-display); 
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
     .game-info span { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Issue Button Styling */
+    .issue-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0; /* Crucial: Prevents text from squeezing the SVG layout */
+      z-index: 5;
+    }
+    .issue-btn img {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.2s var(--ease);
+    }
+    .issue-btn:hover img {
+      transform: scale(1.15);
+    }
   </style>
 </head>
 <body>
@@ -72,6 +104,7 @@
         <div class="game-thumb">8 Ball Pool</div>
         <div class="game-info">
           <h4>8 Ball Pool</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -79,6 +112,7 @@
         <div class="game-thumb">2048</div>
         <div class="game-info">
           <h4>2048</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -86,6 +120,7 @@
         <div class="game-thumb">Angry Birds</div>
         <div class="game-info">
           <h4>Angry Birds</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -93,6 +128,7 @@
         <div class="game-thumb">A Small World Cup</div>
         <div class="game-info">
           <h4>A Small World Cup</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -100,6 +136,7 @@
         <div class="game-thumb">Bank Robbery</div>
         <div class="game-info">
           <h4>Bank Robbery</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -107,6 +144,7 @@
         <div class="game-thumb">Bank Robbery 2</div>
         <div class="game-info">
           <h4>Bank Robbery 2</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -114,6 +152,7 @@
         <div class="game-thumb">Bank Robbery 3</div>
         <div class="game-info">
           <h4>Bank Robbery 3</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -121,13 +160,15 @@
         <div class="game-thumb">baseball Bros</div>
         <div class="game-info">
           <h4>Baseball Bros</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
       <a class="game-card" href="../play/basketballfrvr/" aria-label="Play Basketball FRVR">
         <div class="game-thumb">Basketball FRVR</div>
         <div class="game-info">
-          <h4>A Small World Cup</h4>
+          <h4>Basketball FRVR</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -135,6 +176,7 @@
         <div class="game-thumb">Basket Random</div>
         <div class="game-info">
           <h4>Basket Random</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -142,6 +184,7 @@
         <div class="game-thumb">BitLife</div>
         <div class="game-info">
           <h4>BitLife</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -149,6 +192,7 @@
         <div class="game-thumb">Blackjack</div>
         <div class="game-info">
           <h4>Blackjack</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -156,6 +200,7 @@
         <div class="game-thumb">Block Blast</div>
         <div class="game-info">
           <h4>Block Blast</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -163,6 +208,7 @@
         <div class="game-thumb">Bow Master</div>
         <div class="game-info">
           <h4>Bow Masters</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -170,6 +216,7 @@
         <div class="game-thumb">Bridge Race</div>
         <div class="game-info">
           <h4>Bridge Race</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -177,6 +224,7 @@
         <div class="game-thumb">Buckshot Roulette</div>
         <div class="game-info">
           <h4>Buckshot Roulette</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -184,6 +232,7 @@
         <div class="game-thumb">Connect 3</div>
         <div class="game-info">
           <h4>Connect 3</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -191,6 +240,7 @@
         <div class="game-thumb">Cookie Clicker</div>
         <div class="game-info">
           <h4>Cookie Clicker</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -198,6 +248,7 @@
         <div class="game-thumb">CoreBall</div>
         <div class="game-info">
           <h4>CoreBall</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -205,6 +256,7 @@
         <div class="game-thumb">Crossy Road</div>
         <div class="game-info">
           <h4>Crossy Road</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -212,6 +264,7 @@
         <div class="game-thumb">Drive Mad</div>
         <div class="game-info">
           <h4>Drive Mad</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -219,6 +272,7 @@
         <div class="game-thumb">Duck Life</div>
         <div class="game-info">
           <h4>Duck Life</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -226,6 +280,7 @@
         <div class="game-thumb">Duck Life 2</div>
         <div class="game-info">
           <h4>Duck Life 2</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -233,6 +288,7 @@
         <div class="game-thumb">Duck Life 3</div>
         <div class="game-info">
           <h4>Duck Life 3</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -240,6 +296,7 @@
         <div class="game-thumb">Duck Life 4</div>
         <div class="game-info">
           <h4>Duck Life 4</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -247,6 +304,7 @@
         <div class="game-thumb">Duck Life 5</div>
         <div class="game-info">
           <h4>Duck Life 5</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -254,6 +312,7 @@
         <div class="game-thumb">EaglerCraft</div>
         <div class="game-info">
           <h4>EaglerCraft</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -261,6 +320,7 @@
         <div class="game-thumb">Escape Road</div>
         <div class="game-info">
           <h4>Escape Road</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -268,6 +328,7 @@
         <div class="game-thumb">Escape Road 2</div>
         <div class="game-info">
           <h4>Escape Road 2</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -275,6 +336,7 @@
         <div class="game-thumb">Escape Road 3</div>
         <div class="game-info">
           <h4>Escape Road 3</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -282,6 +344,7 @@
         <div class="game-thumb">Escape Road City</div>
         <div class="game-info">
           <h4>Escape Road City</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -289,6 +352,7 @@
         <div class="game-thumb">Escape Road City 2</div>
         <div class="game-info">
           <h4>Escape Road City 2</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -296,6 +360,7 @@
         <div class="game-thumb">Football Bros</div>
         <div class="game-info">
           <h4>Football Bros</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -303,6 +368,7 @@
         <div class="game-thumb">Geometry Dash Lite</div>
         <div class="game-info">
           <h4>Geometry Dash Lite</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -310,6 +376,7 @@
         <div class="game-thumb">Geometry Dash Meltdown</div>
         <div class="game-info">
           <h4>Geometry Dash Meltdown</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -317,6 +384,7 @@
         <div class="game-thumb">Geometry Dash Subzero</div>
         <div class="game-info">
           <h4>Geometry Dash Subzero</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -324,6 +392,7 @@
         <div class="game-thumb">Geometry Dash World</div>
         <div class="game-info">
           <h4>Geometry Dash World</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -331,6 +400,7 @@
         <div class="game-thumb">Gold Digger FRVR</div>
         <div class="game-info">
           <h4>Gold Digger FRVR</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -338,6 +408,7 @@
         <div class="game-thumb">Moto X3M Winter</div>
         <div class="game-info">
           <h4>Moto X3M Winter</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -345,6 +416,7 @@
         <div class="game-thumb">Mountain Bike Racer</div>
         <div class="game-info">
           <h4>Mountain Bike Racer</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -352,6 +424,7 @@
         <div class="game-thumb">Paper IO</div>
         <div class="game-info">
           <h4>Paper IO</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -359,6 +432,7 @@
         <div class="game-thumb">Poly Track</div>
         <div class="game-info">
           <h4>Poly Track</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -366,6 +440,7 @@
         <div class="game-thumb">Retro Bowl</div>
         <div class="game-info">
           <h4>Retro Bowl</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -373,6 +448,7 @@
         <div class="game-thumb">Retro Bowl College</div>
         <div class="game-info">
           <h4>Retro Bowl College</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -380,6 +456,7 @@
         <div class="game-thumb">Snake</div>
         <div class="game-info">
           <h4>Snake</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -387,6 +464,7 @@
         <div class="game-thumb">Solitaire</div>
         <div class="game-info">
           <h4>Solitaire</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -394,6 +472,7 @@
         <div class="game-thumb">Soundboard</div>
         <div class="game-info">
           <h4>Soundboard</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -401,6 +480,7 @@
         <div class="game-thumb">Stickman Hook</div>
         <div class="game-info">
           <h4>Stickman Hook</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -408,6 +488,7 @@
         <div class="game-thumb">Subway Surfers New York</div>
         <div class="game-info">
           <h4>Subway Surfers New York</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -415,6 +496,7 @@
         <div class="game-thumb">Subway Surfers San Francisco</div>
         <div class="game-info">
           <h4>Subway Surfers San Francisco</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
 
@@ -422,11 +504,11 @@
         <div class="game-thumb">Tiny Fishing</div>
         <div class="game-info">
           <h4>Tiny Fishing</h4>
+          <span class="issue-btn" onclick="event.preventDefault(); event.stopPropagation(); window.open('https://forms.gle/HYmFZn4RJhoNYhAT8', '_blank');"><img src="../assets/gameissue.svg" alt="Report an issue"></span>
         </div>
       </a>
     </div>
   </main>
-</main>
 
   <style>
     .no-results { text-align: center; color: var(--text-muted); padding: 1rem 2rem; font-style: italic; }
