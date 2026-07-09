@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Obby Robby</title>
+  <style>
+    body { margin: 0; background: black; }
+    canvas { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <canvas id="unity-canvas"></canvas>
+
+  <script src="obrob.js"></script>
+  <script>
+    createUnityInstance(document.querySelector("#unity-canvas"), {
+      dataUrl: "obrob.data.unityweb",
+      frameworkUrl: "obrob.framework.js.unityweb",
+      codeUrl: "obrob.wasm.unityweb"
+    });
+  </script>
+</body>
+</html>
