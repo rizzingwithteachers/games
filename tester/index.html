@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcade QA Dashboard</title>
+    <style>
+        * { box-sizing: border-box; font-family: sans-serif; }
+        body { margin: 0; display: flex; height: 100vh; background: #1a1a1a; color: white; }
+
+        /* Layout Structure */
+        #left-panel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; border-right: 2px solid #333; }
+        #right-panel { width: 350px; display: flex; flex-direction: column; padding: 20px; background: #222; }
+
+        /* iPad 9th Gen Dimensions (1080x810 CSS Pixels) */
+        .iframe-container {
+            width: 1080px;
+            height: 810px;
+            background: #000;
+            border: 4px solid #444;
+            border-radius: 8px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        iframe { width: 100%; height: 100%; border: none; border-radius: 4px; }
+
+        /* Folder Name Banner */
+        #folder-name-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 15px;
+            text-align: center;
+            background: #2d2d2d;
+            padding: 10px 24px;
+            border-radius: 30px;
+            border: 1px solid #444;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Control Buttons */
+        #controls { display: flex; gap: 15px; }
+        .btn { padding: 16px 32px; font-size: 16px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; transition: transform 0.1s, opacity 0.2s; }
+        .btn:hover { opacity: 0.9; transform: scale(1.02); }
+        .btn:active { transform: scale(0.98); }
+        .btn-works { background-color: #2ec4b6; box-shadow: 0 0 10px rgba(46, 196, 182, 0.3); }
+        .btn-buttons { background-color: #ff9f1c; box-shadow: 0 0 10px rgba(255, 159, 28, 0.3); }
+        .btn-broken { background-color: #e71d36; box-shadow: 0 0 10px rgba(231, 29, 54, 0.3); }
+
+        /* Right Panel: Timer Section */
+        .timer-section { text-align: right; margin-bottom: 30px; }
+        #timer { font-size: 54px; font-weight: bold; font-family: monospace; color: #ff9f1c; text-shadow: 0 0 10px rgba(255, 159, 28, 0.2); }
+        .timer-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 5px; }
+        .timer-btn { background: #444; border: none; color: white; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px; }
+        .timer-btn:hover { background: #555; }
+        
+        /* Dashboard Real-time Lists */
+        .lists-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .list-box { padding: 12px; border-radius: 6px; background: #2d2d2d; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .list-box h3 { margin-top: 0; margin-bottom: 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+        .list-box ul { list-style: none; padding: 0; margin: 0; max-height: 140px; overflow-y: auto; font-size: 13px; font-family: monospace; }
+        .list-box li { padding: 5px 0; border-bottom: 1px solid #383838; color: #ccc; }
+        .list-box li:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <div id="left-panel">
+        <div class="iframe-container">
+            <iframe id="game-frame" src=""></iframe>
+        </div>
+        
+        <div id="folder-name-display">Connecting to GitHub Repository...</div>
+        
+        <div id="controls">
+            <button class="btn btn-works" onclick="submitStatus('works')">Works</button>
+            <button class="btn btn-buttons" onclick="submitStatus('needs buttons')">Needs Buttons</button>
+            <button class="btn btn-broken" onclick="submitStatus('not working')">Not Working</button>
+        </div>
+    </div>
+
+    <div id="right-panel">
+        <div class="timer-section">
+            <div id="timer">0:15</div>
+            <div class="timer-btns">
+                <button class="timer-btn" onclick="pauseTimer()">Pause</button>
+                <button class="timer-btn" onclick="unpauseTimer()">Unpause</button>
+            </div>
+        </div>
+
+        <div class="lists-container">
+            <div class="list-box" style="border-left: 5px solid #2ec4b6;">
+                <h3 style="color: #2ec4b6;">Works</h3>
+                <ul id="list-works"></ul>
+            </div>
+            <div class="list-box" style="border-left: 5px solid #ff9f1c;">
+                <h3 style="color: #ff9f1c;">Needs Buttons</h3>
+                <ul id="list-buttons"></ul>
+            </div>
+            <div class="list-box" style="border-left: 5px solid #e71d36;">
+                <h3 style="color: #e71d36;">Not Working</h3>
+                <ul id="list-broken"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= CONFIGURATION =================
+        const GITHUB_USERNAME = "jkisveryscary"; // Replace with your GitHub username
+        const REPO_NAME = "carsongames";             // Replace with your repository name
+        // =================================================
+
+        let gameFolders = [];
+        let currentIndex = 0;
+        let timeLeft = 15;
+        let timerId = null;
+        let isPaused = false;
+        
+        // Grab data from LocalStorage if it exists, otherwise create empty object
+        let savedProgress = JSON.parse(localStorage.getItem('arcadeQAResults')) || {};
+
+        // Query GitHub API to see all sub-directories within the /play folder
+        async function fetchFoldersFromGitHub() {
+            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/play`;
+            
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("Could not find directory data. Verify username and repo configuration.");
+                
+                const data = await response.json();
+                
+                // Keep only actual folders ("dir") and map out their names
+                gameFolders = data
+                    .filter(item => item.type === "dir")
+                    .map(item => item.name)
+                    .sort(); // alphabetize items
+                
+                if (gameFolders.length === 0) {
+                    document.getElementById('folder-name-display').innerText = "Empty Directory: No game folders found inside /play/";
+                    return;
+                }
+
+                initDashboard();
+            } catch (error) {
+                console.error(error);
+                document.getElementById('folder-name-display').innerText = "API Error. Check configuration variables.";
+            }
+        }
+
+        function initDashboard() {
+            // Drop onto the first folder entry that hasn't received a status check yet
+            currentIndex = gameFolders.findIndex(folder => !savedProgress[folder]);
+            
+            // Loop back to index 0 if everything has been checked
+            if (currentIndex === -1) {
+                alert("Testing complete for all indexed folders! Starting over from top.");
+                currentIndex = 0;
+            }
+            updateListsUI();
+            loadGame();
+        }
+
+        function loadGame() {
+            if (currentIndex >= gameFolders.length) {
+                document.getElementById('folder-name-display').innerText = "🎉 All Game Folders Reviewed!";
+                document.getElementById('game-frame').src = "";
+                clearInterval(timerId);
+                return;
+            }
+
+            const activeGame = gameFolders[currentIndex];
+            
+            // Render folder directory name path directly above buttons
+            document.getElementById('folder-name-display').innerText = `../play/${activeGame}/ (${currentIndex + 1}/${gameFolders.length})`;
+            
+            // Frame routing steps out of /tester/ and target /play/[game]/
+            document.getElementById('game-frame').src = `../play/${activeGame}/`;
+            
+            resetTimer();
+        }
+
+        // TIMER UTILITIES
+        function startTimer() {
+            clearInterval(timerId);
+            timerId = setInterval(() => {
+                if (!isPaused) {
+                    timeLeft--;
+                    document.getElementById('timer').innerText = `0:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerId);
+                        submitStatus('not working'); // Timed out: Fail safe auto-mark as broken
+                    }
+                }
+            }, 1000);
+        }
+
+        function resetTimer() {
+            timeLeft = 15;
+            document.getElementById('timer').innerText = "0:15";
+            isPaused = false;
+            startTimer();
+        }
+
+        function pauseTimer() { isPaused = true; }
+        function unpauseTimer() { isPaused = false; }
+
+        // LOCAL STORAGE AND UI SYNC
+        function submitStatus(status) {
+            if (gameFolders.length === 0) return;
+            
+            const currentFolder = gameFolders[currentIndex];
+            savedProgress[currentFolder] = status;
+            localStorage.setItem('arcadeQAResults', JSON.stringify(savedProgress));
+            
+            updateListsUI();
+            currentIndex++;
+            loadGame();
+        }
+
+        function updateListsUI() {
+            // Clear prior lists to avoid duplicate items on rerender
+            document.getElementById('list-works').innerHTML = "";
+            document.getElementById('list-buttons').innerHTML = "";
+            document.getElementById('list-broken').innerHTML = "";
+
+            // Loop through stored data cache and sort into UI lists
+            for (const [folder, status] of Object.entries(savedProgress)) {
+                const li = document.createElement('li');
+                li.innerText = folder;
+                
+                if (status === 'works') {
+                    document.getElementById('list-works').appendChild(li);
+                } else if (status === 'needs buttons') {
+                    document.getElementById('list-buttons').appendChild(li);
+                } else if (status === 'not working') {
+                    document.getElementById('list-broken').appendChild(li);
+                }
+            }
+        }
+
+        window.onload = fetchFoldersFromGitHub;
+    </script>
+</body>
+</html>
