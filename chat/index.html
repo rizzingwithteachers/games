@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Carson Games - Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ── THEME CONFIGURATION ──────────────────────────────── */
@@ -962,8 +962,7 @@ async function startChat(user) {
           text: `System Alert: @${targetUser.username} was kicked from the chat by an administrator.`,
           username: "Server",
           userId: null,
-          role: "system",
-          isSystemMessage: true
+          role: "system"
         }]);
         showLocalSystemMessage(`Kicked user @${targetUser.username} for 2 minutes.`, false);
         return;
@@ -975,8 +974,7 @@ async function startChat(user) {
           text: `⚠️ WARNING LOG: @${targetUser.username} has been formally warned. Reason: ${payloadText}`,
           username: "Server",
           userId: null,
-          role: "system",
-          isSystemMessage: true
+          role: "system"
         }]);
         return;
       }
@@ -988,8 +986,7 @@ async function startChat(user) {
           text: `📢 GLOBAL SYSTEM ANNOUNCEMENT: ${announcementMsg}`,
           username: "Server",
           userId: null,
-          role: "system",
-          isSystemMessage: true
+          role: "system"
         }]);
         return;
       }
@@ -1084,14 +1081,12 @@ async function startChat(user) {
           avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
           participants: participantIds,
           role: currentUserRole,
-          clientSideId: clientSideId,
-          isWhisper: true
+          clientSideId: clientSideId
         };
 
         if (isOmoggleCommand) {
           challengePayload.isOmoggleInvite = true;
           challengePayload.inviteStatus = "pending";
-          challengePayload.isSystemMessage = true;
         }
 
         const { error } = await supabase.from("whispers").insert([challengePayload]);
@@ -1103,7 +1098,7 @@ async function startChat(user) {
           userId: user.id,
           avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
           role: currentUserRole,
-          clientSideId: clientSideId,
+          clientSideId: clientSideId
         }]);
         if (error) throw error;
       }
@@ -1151,7 +1146,7 @@ async function listenForNewMessages(user) {
     .range(0, 19);
 
   if (initialPublic) {
-    dbPublicMessages = initialPublic.map(m => ({ ...m, isWhisper: false })).reverse();
+    dbPublicMessages = initialPublic.map(m => ({ ...m, isWhisper: false, isSystemMessage: m.role === "system" })).reverse();
     initialSnapshotReceived = true;
     if (initialPublic.length < 20) allMessagesLoaded = true;
     historyPageOffset = dbPublicMessages.length;
@@ -1164,7 +1159,7 @@ async function listenForNewMessages(user) {
     .contains("participants", [user.id]);
 
   if (initialPrivate) {
-    dbPrivateMessages = initialPrivate.map(m => ({ ...m, isWhisper: true }));
+    dbPrivateMessages = initialPrivate.map(m => ({ ...m, isWhisper: true, isSystemMessage: m.isOmoggleInvite === true }));
     renderMessages();
   }
 
@@ -1172,7 +1167,7 @@ async function listenForNewMessages(user) {
   publicChannel = supabase
     .channel('public:messages')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-      const newMsg = { ...payload.new, isWhisper: false };
+      const newMsg = { ...payload.new, isWhisper: false, isSystemMessage: payload.new.role === "system" };
       maybeNotifyForMention(newMsg);
       dbPublicMessages.push(newMsg);
       if (dbPublicMessages.length > 40) dbPublicMessages.shift();
@@ -1185,9 +1180,9 @@ async function listenForNewMessages(user) {
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
       const idx = dbPublicMessages.findIndex(m => m.id === payload.new.id);
-      if (idx !== -1) dbPublicMessages[idx] = { ...payload.new, isWhisper: false };
+      if (idx !== -1) dbPublicMessages[idx] = { ...payload.new, isWhisper: false, isSystemMessage: payload.new.role === "system" };
       const hIdx = dbHistoricalMessages.findIndex(m => m.id === payload.new.id);
-      if (hIdx !== -1) dbHistoricalMessages[hIdx] = { ...payload.new, isWhisper: false };
+      if (hIdx !== -1) dbHistoricalMessages[hIdx] = { ...payload.new, isWhisper: false, isSystemMessage: payload.new.role === "system" };
       renderMessages();
     })
     .subscribe();
@@ -1198,7 +1193,7 @@ async function listenForNewMessages(user) {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whispers' }, payload => {
       const newWhisper = payload.new;
       if (newWhisper.participants && newWhisper.participants.includes(user.id)) {
-        const incomingMessage = { ...newWhisper, isWhisper: true };
+        const incomingMessage = { ...newWhisper, isWhisper: true, isSystemMessage: newWhisper.isOmoggleInvite === true };
         maybeNotifyForMention(incomingMessage);
         dbPrivateMessages.push(incomingMessage);
         renderMessages(true);
@@ -1209,7 +1204,7 @@ async function listenForNewMessages(user) {
       if (updatedWhisper.participants && updatedWhisper.participants.includes(user.id)) {
         const idx = dbPrivateMessages.findIndex(m => m.id === updatedWhisper.id);
         if (idx !== -1) {
-          dbPrivateMessages[idx] = { ...updatedWhisper, isWhisper: true };
+          dbPrivateMessages[idx] = { ...updatedWhisper, isWhisper: true, isSystemMessage: updatedWhisper.isOmoggleInvite === true };
           
           if (updatedWhisper.isOmoggleInvite && updatedWhisper.inviteStatus === "accepted") {
             const sessionRedirectToken = `omoggle_redirected_${updatedWhisper.id}`;
@@ -1698,7 +1693,7 @@ async function handleScrollPagination() {
 
       if (olderMessages && olderMessages.length > 0) {
         historyPageOffset += olderMessages.length;
-        const fetchedHistorical = olderMessages.map(m => ({ ...m, isWhisper: false })).reverse();
+        const fetchedHistorical = olderMessages.map(m => ({ ...m, isWhisper: false, isSystemMessage: m.role === "system" })).reverse();
         dbHistoricalMessages = [...fetchedHistorical, ...dbHistoricalMessages];
         
         renderMessages();
