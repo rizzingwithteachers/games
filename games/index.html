@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carson Games - Games</title>
   <link rel="stylesheet" href="../style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
     .container { max-width: 1300px; margin: 0 auto; padding: 3rem 2rem; width: 100%; }
     .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
@@ -544,20 +544,12 @@
   </script>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
-      authDomain: "carson-games.firebaseapp.com",
-      projectId: "carson-games",
-      storageBucket: "carson-games.firebasestorage.app",
-      messagingSenderId: "856520252558",
-      appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    /* SUPABASE CONFIG */
+    const supabaseUrl = "https://hbynnertatvxpvtqctyg.supabase.co";
+    const supabaseKey = "sb_publishable_WnnU16Mfj1rmRJcEStOzeQ_BExLbP2C";
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const container = document.getElementById('auth-button-container');
 
@@ -576,7 +568,7 @@
           logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             try {
-              await signOut(auth);
+              await supabase.auth.signOut();
               window.location.reload();
             } catch (err) {
               console.error('Logout error:', err);
@@ -589,7 +581,10 @@
       }
     };
 
-    onAuthStateChanged(auth, (user) => renderAuthState(user));
+    // Correct fixed hook for Supabase subscription architecture
+    supabase.auth.onAuthStateChange((event, session) => {
+      renderAuthState(session?.user || null);
+    });
   </script>
 
 </body>
