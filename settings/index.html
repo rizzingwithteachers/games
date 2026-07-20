@@ -4,95 +4,114 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings - Carson Games</title>
-  <link rel="stylesheet" href="../style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
-    .settings-hero {
-      text-align: center;
-      padding: 5rem 2rem 2rem;
-      background: radial-gradient(circle at top center, rgba(108,99,255,0.08) 0%, transparent 65%);
+    /* ── BASE CORE THEME ARCHITECTURE VARIABLES ──────────────── */
+    :root {
+      --bg: #06060c;
+      --surface: #0c0d19;
+      --card: #121426;
+      --card-hover: #181b33;
+      --border: rgba(255, 255, 255, 0.06);
+      --text: #f1f5f9;
+      --text-muted: #64748b;
+      --accent: #6c63ff;
+      --radius-m: 8px;
+      --radius-l: 14px;
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-display: 'Outfit', system-ui, sans-serif;
+      --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
     }
-    .settings-hero h1 {
-      font-family: var(--font-display);
-      font-size: 3rem;
-      font-weight: 800;
-      margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .settings-hero p {
-      color: var(--text-muted);
-      font-size: 1.1rem;
-    }
-    .settings-container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 0 2rem 6rem;
-      width: 100%;
-    }
-    .settings-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-l);
-      padding: 2.5rem 2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-    }
-    .settings-section {
-      display: flex;
-      flex-direction: column;
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+    header { background: rgba(12, 13, 25, 0.75); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 999; }
+    .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; text-decoration: none; color: var(--text); }
+    nav ul { display: flex; list-style: none; gap: 1.5rem; align-items: center; }
+    nav a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 0.9rem; padding: 6px 12px; border-radius: var(--radius-m); transition: all 0.3s var(--ease); }
+    nav a:hover, nav a.active { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+    
+    .nav-auth-btn, .btn-primary { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 999px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer; border: none; transition: all 0.3s var(--ease); }
+    .btn-primary { border-radius: var(--radius-m); }
+    .nav-auth-btn:hover, .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+    .settings-hero { text-align: center; padding: 4rem 2rem 2rem; }
+    .settings-hero h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 800; }
+    .settings-hero p { color: var(--text-muted); margin-top: 0.5rem; }
+
+    .settings-container { max-width: 800px; margin: 0 auto; padding: 0 2rem 6rem; width: 100%; }
+    .settings-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 2.5rem 2rem; display: flex; flex-direction: column; gap: 2.5rem; }
+    .settings-section { display: flex; flex-direction: column; gap: 1.25rem; }
+    .settings-section h3 { font-family: var(--font-display); font-size: 1.4rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; color: #fff; }
+    
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    .form-group label { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; }
+    .form-group input, .form-group textarea { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 0.75rem 1rem; color: #fff; font-size: 1rem; outline: none; transition: all 0.3s var(--ease); }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(108, 99, 255, 0.15); }
+    .btn-container { display: flex; justify-content: flex-end; }
+
+    /* ── STYLING FOR ROWS OF 6 BACKDROP SELECTION GRID ────── */
+    .background-grid-wrapper {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
       gap: 1rem;
+      width: 100%;
+      margin-top: 0.5rem;
     }
-    .settings-section h3 {
-      font-family: var(--font-display);
-      font-size: 1.3rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.5rem;
-      color: #fff;
-    }
-    .form-group {
+    .background-thumb-card {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      align-items: center;
+      cursor: pointer;
+      group: transition;
     }
-    .form-group label {
-      font-size: 0.9rem;
+    .thumb-canvas {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: var(--radius-m);
+      border: 2px solid var(--border);
+      background-size: cover;
+      background-position: center;
+      transition: all 0.25s var(--ease);
+    }
+    .background-thumb-card:hover .thumb-canvas, .background-thumb-card.active .thumb-canvas {
+      border-color: var(--accent);
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(108, 99, 255, 0.3);
+    }
+    .thumb-label {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
       font-weight: 600;
+      text-align: center;
+      text-transform: capitalize;
     }
-    .form-group input {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-m, 8px);
-      padding: 0.75rem 1rem;
-      color: #fff;
-      font-family: inherit;
-      font-size: 1rem;
-      transition: all 0.3s var(--ease);
-    }
-    .form-group input:focus {
-      outline: none;
-      border-color: rgba(108, 99, 255, 0.5);
-      background: rgba(108, 99, 255, 0.02);
-      box-shadow: 0 0 15px rgba(108, 99, 255, 0.15);
-    }
-    .btn-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 0.5rem;
-    }
-    .status-msg {
-      font-size: 0.9rem;
-      margin-top: 0.5rem;
-    }
+    .background-thumb-card.active .thumb-label { color: #fff; }
+
+    .status-msg { font-size: 0.9rem; margin-top: 0.5rem; }
     .status-success { color: #4ade80; }
     .status-error { color: #f87171; }
-    
-    .logged-out-msg {
-      text-align: center;
-      padding: 3rem 0;
+    .logged-out-msg { text-align: center; padding: 3rem 0; }
+
+    /* ── CORE COMPLEMENTARY BACKGROUND SPECIFICATION STYLES ─ */
+    body.theme-red { --bg: #1c0505; --surface: #2d0a0a; --card: #3a1010; --accent: #ff4d4d; }
+    body.theme-orange { --bg: #1c0f05; --surface: #2d190a; --card: #3a2210; --accent: #ff944d; }
+    body.theme-yellow { --bg: #161402; --surface: #262205; --card: #332d0a; --accent: #ffdb4d; }
+    body.theme-green { --bg: #03140a; --surface: #072413; --card: #0c331c; --accent: #4dff88; }
+    body.theme-blue { --bg: #030a1c; --surface: #07132d; --card: #0c1c3a; --accent: #4da6ff; }
+    body.theme-purple { --bg: #0f031c; --surface: #19072d; --card: #220c3a; --accent: #b34dff; }
+    body.theme-stars { background-image: url('../assets/stars.png'); background-size: cover; background-attachment: fixed; }
+    body.theme-lightning { background-image: url('../assets/lightning.png'); background-size: cover; background-attachment: fixed; }
+    body.theme-teal-magenta { background-image: linear-gradient(135deg, #0d2b30 0%, #300d2b 100%); }
+    body.theme-blue-pink { background-image: url('../assets/blue+pink.png'); background-size: cover; background-attachment: fixed; }
+    body.theme-blue-spots { background-image: url('../assets/blue-spots.png'); background-size: repeat; }
+    body.theme-white-spots { background-image: url('../assets/white-spots.png'); background-size: repeat; }
+
+    @media (max-width: 768px) {
+      .background-grid-wrapper { grid-template-columns: repeat(3, 1fr); }
     }
   </style>
 </head>
@@ -116,7 +135,7 @@
 
   <section class="settings-hero">
     <h1>Account Settings</h1>
-    <p>Change your account settings</p>
+    <p>Change your configuration and interface options</p>
   </section>
 
   <main class="settings-container">
@@ -140,139 +159,145 @@
     const settingsWrapper = document.getElementById('settings-wrapper');
     const navAuthContainer = document.getElementById('auth-button-container');
 
-    if (navAuthContainer) {
-      navAuthContainer.innerHTML = '';
-      navAuthContainer.style.display = 'none';
+    const localThemeCached = localStorage.getItem('carson_theme');
+    if (localThemeCached && localThemeCached !== 'default') {
+      document.body.className = 'theme-' + localThemeCached;
     }
 
+    const THEME_DATA_MAP = [
+      { id: 'default', type: 'color', val: '#06060c', label: 'default' },
+      { id: 'red', type: 'color', val: '#2a0808', label: 'red' },
+      { id: 'orange', type: 'color', val: '#2a1408', label: 'orange' },
+      { id: 'yellow', type: 'color', val: '#221a05', label: 'yellow' },
+      { id: 'green', type: 'color', val: '#05220f', label: 'green' },
+      { id: 'blue', type: 'color', val: '#05132d', label: 'blue' },
+      { id: 'purple', type: 'color', val: '#1a052e', label: 'purple' },
+      { id: 'stars', type: 'img', val: '../assets/stars.png', label: 'stars' },
+      { id: 'lightning', type: 'img', val: '../assets/lightning.png', label: 'lightning' },
+      { id: 'teal-magenta', type: 'gradient', val: 'linear-gradient(135deg, #0d2b30, #300d2b)', label: 'teal + magenta' },
+      { id: 'blue-pink', type: 'img', val: '../assets/blue+pink.png', label: 'blue + pink' },
+      { id: 'blue-spots', type: 'img', val: '../assets/blue-spots.png', label: 'blue spots' },
+      { id: 'white-spots', type: 'img', val: '../assets/white-spots.png', label: 'white spots' }
+    ];
+
     const renderSettingsInterface = async (user) => {
-      if (user) {
-        navAuthContainer.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-        navAuthContainer.style.display = '';
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-          logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            try {
-              await supabase.auth.signOut();
-              window.location.reload();
-            } catch (err) {
-              console.error('Logout error:', err);
-            }
-          });
-        }
+      if (!user) return;
 
-        // Fetch user profile properties asynchronously from public table rows
-        let existingProfileName = "";
-        const { data: profile } = await supabase
-          .from("users")
-          .select("username")
-          .eq("id", user.id)
-          .single();
+      navAuthContainer.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
+      navAuthContainer.style.display = '';
+      
+      const { data: profile } = await supabase.from("users").select("*").eq("id", user.id).single();
+      const currentBgSetting = (profile && profile.background) ? profile.background : 'default';
+      const currentUserRole = (profile && profile.role) ? profile.role : 'user';
 
-        if (profile) {
-          existingProfileName = profile.username || "";
-        }
+      localStorage.setItem('carson_theme', currentBgSetting);
+      document.body.className = currentBgSetting === 'default' ? '' : 'theme-' + currentBgSetting;
 
-        settingsWrapper.innerHTML = `
-          <form id="username-form" class="settings-section">
-            <h3>Change Username</h3>
-            <div class="form-group">
-              <label for="username">New Username</label>
-              <input type="text" id="username" value="${existingProfileName}" placeholder="Enter new username" required>
-            </div>
-            <div class="btn-container">
-              <button type="submit" class="btn-primary">Update Username</button>
-            </div>
-            <div id="username-msg" class="status-msg"></div>
-          </form>
-
-          <form id="password-form" class="settings-section">
-            <h3>Change Password</h3>
-            <div class="form-group">
-              <label for="new-password">New Password</label>
-              <input type="password" id="new-password" placeholder="••••••••" minlength="6" required>
-            </div>
-            <div class="btn-container">
-              <button type="submit" class="btn-primary">Update Password</button>
-            </div>
-            <div id="password-msg" class="status-msg"></div>
-          </form>
-        `;
-
-        // Handle Username Submission
-        document.getElementById('username-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const newUsername = document.getElementById('username').value.trim();
-          const msgEl = document.getElementById('username-msg');
-          msgEl.className = 'status-msg';
-          msgEl.textContent = '';
-
-          try {
-            // Update profile data in the public users database table mapping
-            const { error } = await supabase
-              .from("users")
-              .update({ username: newUsername })
-              .eq("id", user.id);
-
-            if (error) throw error;
-
-            msgEl.textContent = 'Username updated successfully! Refreshing...';
-            msgEl.classList.add('status-success');
-            
-            setTimeout(() => {
-              window.location.reload();
-            }, 1500);
-
-          } catch (err) {
-            console.error(err);
-            msgEl.textContent = "Error updating username: " + err.message;
-            msgEl.classList.add('status-error');
-          }
-        });
-
-        // Handle Password Submission
-        document.getElementById('password-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const newPassword = document.getElementById('new-password').value;
-          const msgEl = document.getElementById('password-msg');
-          msgEl.className = 'status-msg';
-          msgEl.textContent = '';
-
-          try {
-            const { error } = await supabase.auth.updateUser({
-              password: newPassword
-            });
-
-            if (error) throw error;
-
-            msgEl.textContent = 'Password updated successfully!';
-            msgEl.classList.add('status-success');
-            document.getElementById('new-password').value = '';
-          } catch (err) {
-            msgEl.textContent = err.message;
-            msgEl.classList.add('status-error');
-          }
-        });
-
-      } else {
-        navAuthContainer.innerHTML = '<a href="../login/" class="nav-auth-btn">Sign In</a>';
-        navAuthContainer.style.display = '';
-        settingsWrapper.innerHTML = `
-          <div class="logged-out-msg">
-            <p>Please sign in to view and change your settings.</p>
-            <br>
-            <a href="../login/" class="btn-primary">Sign In</a>
+      settingsWrapper.innerHTML = `
+        <form id="username-form" class="settings-section">
+          <h3>Change Username</h3>
+          <div class="form-group">
+            <label for="username">New Username</label>
+            <input type="text" id="username" value="${profile?.username || ''}" required>
           </div>
+          <div class="btn-container"><button type="submit" class="btn-primary">Update Username</button></div>
+          <div id="username-msg" class="status-msg"></div>
+        </form>
+
+        <div class="settings-section">
+          <h3>Background Gallery</h3>
+          <div class="background-grid-wrapper" id="thumb-matrix-target"></div>
+          <div id="background-msg" class="status-msg"></div>
+        </div>
+
+        <div id="owner-pannel-injection-point"></div>
+      `;
+
+      // Draw background cards
+      const thumbContainer = document.getElementById("thumb-matrix-target");
+      THEME_DATA_MAP.forEach(theme => {
+        const thumb = document.createElement("div");
+        thumb.className = `background-thumb-card ${currentBgSetting === theme.id ? 'active' : ''}`;
+        thumb.dataset.id = theme.id;
+
+        let canvasStyle = "";
+        if (theme.type === 'color') canvasStyle = `background-color: ${theme.val};`;
+        if (theme.type === 'gradient') canvasStyle = `background: ${theme.val};`;
+        if (theme.type === 'img') canvasStyle = `background-image: url('${theme.val}');`;
+
+        thumb.innerHTML = `<div class="thumb-canvas" style="${canvasStyle}"></div><div class="thumb-label">${theme.label}</div>`;
+        
+        thumb.onclick = async () => {
+          document.querySelectorAll('.background-thumb-card').forEach(c => c.classList.remove('active'));
+          thumb.classList.add('active');
+          const bgMsg = document.getElementById("background-msg");
+
+          try {
+            document.body.className = theme.id === 'default' ? '' : 'theme-' + theme.id;
+            localStorage.setItem('carson_theme', theme.id);
+            
+            await supabase.from("users").update({ background: theme.id }).eq("id", user.id);
+            bgMsg.textContent = "Theme settings successfully updated!";
+            bgMsg.className = "status-msg status-success";
+          } catch(err) {
+            bgMsg.textContent = "Error saving theme properties.";
+            bgMsg.className = "status-msg status-error";
+          }
+        };
+        thumbContainer.appendChild(thumb);
+      });
+
+      // Inject Owner Panel if permissions exist
+      if (currentUserRole === 'owner') {
+        const ownerSection = document.getElementById("owner-pannel-injection-point");
+        ownerSection.innerHTML = `
+          <form id="announcement-form" class="settings-section" style="margin-top: 1rem;">
+            <h3>Post System Announcement</h3>
+            <div class="form-group">
+              <label for="announcement-text">Announcement Headline Text</label>
+              <textarea id="announcement-text" rows="3" placeholder="e.g., Minecraft 7/22/2026" required></textarea>
+            </div>
+            <div class="btn-container"><button type="submit" class="btn-primary">Deploy Announcement</button></div>
+            <div id="announcement-msg" class="status-msg"></div>
+          </form>
         `;
+
+        document.getElementById("announcement-form").onsubmit = async (e) => {
+          e.preventDefault();
+          const txtInput = document.getElementById("announcement-text");
+          const annMsg = document.getElementById("announcement-msg");
+          
+          try {
+            await supabase.from("announcements").insert([{ text: txtInput.value.trim() }]);
+            annMsg.textContent = "Bulletin deployed to home page feed matrix successfully!";
+            annMsg.className = "status-msg status-success";
+            txtInput.value = "";
+          } catch(err) {
+            annMsg.textContent = "Failed to update system feed properties.";
+            annMsg.className = "status-msg status-error";
+          }
+        };
       }
+
+      // Username Update Binding
+      document.getElementById('username-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const newUsername = document.getElementById('username').value.trim();
+        const msgEl = document.getElementById('username-msg');
+        try {
+          await supabase.from("users").update({ username: newUsername }).eq("id", user.id);
+          msgEl.textContent = 'Username configuration synchronized!';
+          msgEl.className = 'status-msg status-success';
+        } catch (err) {
+          msgEl.textContent = 'Failed to execute modification.';
+          msgEl.className = 'status-msg status-error';
+        }
+      };
     };
 
-    // Keep auth state sync parameters monitored automatically
     supabase.auth.onAuthStateChange((event, session) => {
       renderSettingsInterface(session?.user || null);
     });
   </script>
-
 </body>
 </html>
