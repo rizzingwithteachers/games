@@ -147,20 +147,12 @@
   </main>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
-      authDomain: "carson-games.firebaseapp.com",
-      projectId: "carson-games",
-      storageBucket: "carson-games.firebasestorage.app",
-      messagingSenderId: "856520252558",
-      appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    /* SUPABASE CONFIG */
+    const supabaseUrl = "https://hbynnertatvxpvtqctyg.supabase.co";
+    const supabaseKey = "sb_publishable_WnnU16Mfj1rmRJcEStOzeQ_BExLbP2C";
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const container = document.getElementById('auth-button-container');
     const heroSignInBtn = document.getElementById('hero-signin-btn');
@@ -184,7 +176,7 @@
           logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             try {
-              await signOut(auth);
+              await supabase.auth.signOut();
               window.location.reload();
             } catch (err) {
               console.error('Logout error:', err);
@@ -198,7 +190,10 @@
       }
     };
 
-    onAuthStateChanged(auth, (user) => renderAuthState(user));
+    // Listen directly to Supabase authentication transitions
+    supabase.auth.onAuthStateChange((event, session) => {
+      renderAuthState(session?.user || null);
+    });
   </script>
 
 </body>
