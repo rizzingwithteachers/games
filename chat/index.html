@@ -1105,7 +1105,6 @@ async function startChat(user) {
           avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
           role: currentUserRole,
           clientSideId: clientSideId,
-          isWhisper: false
         }]);
         if (error) throw error;
       }
