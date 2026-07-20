@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Carson Games - Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ── THEME CONFIGURATION ──────────────────────────────── */
@@ -411,7 +411,6 @@
   </main>
 
 <script type="module">
-// Import official Supabase client directly via ESM
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /* SUPABASE CONFIG */
@@ -420,22 +419,27 @@ const supabaseKey = "sb_publishable_WnnU16Mfj1rmRJcEStOzeQ_BExLbP2C";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const EX_COMMANDS = [
-  { name: "/admin", desc: "Changes user permissions to allow for more control" },
-  { name: "/ban", desc: "Bans a user from using or seeing chat for a chosen amount of time" },
-  { name: "/deleteall", desc: "Deletes all chat messages and whispers" },
-  { name: "/deleteuser", desc: "Removes user from database entirely" },
-  { name: "/headadmin", desc: "Changes user permissions to allow for full control" },
-  { name: "/mute", desc: "Mute a specific user for a chosen amount of time" },
-  { name: "/omoggle", desc: "Invite a user to an Omoggle duel" },
-  { name: "/permaban", desc: "Permanently bans a user from chat until unbanned" },
-  { name: "/subscription", desc: "Assigns rank (basic or premium) to user" },
-  { name: "/unadmin", desc: "Removes admin permissions from a user" },
-  { name: "/unban", desc: "Unbans a user from the chat" },
-  { name: "/unheadadmin", desc: "Removes headadmin status from a user" },
-  { name: "/unmute", desc: "Unmutes a user from the chat" },
-  { name: "/undo", desc: "Undos your last edit or delete" },
-  { name: "/users", desc: "Shows a list of all current users" },
-  { name: "/w", desc: "Whisper privately to other users" }
+  { name: "/admin", desc: "Promote a user to Admin (Owner only)" },
+  { name: "/announce", desc: "Post a highlighted global announcement (Admin/Owner only)" },
+  { name: "/ban", desc: "Ban a user for a specific amount of hours (Admin/Owner only)" },
+  { name: "/clear", desc: "Clear your local chat display rows (Everyone)" },
+  { name: "/deleteall", desc: "Wipe all chat messages and whispers completely (Admin/Owner only)" },
+  { name: "/deleteuser", desc: "Purge a user profile row from the database framework (Owner only)" },
+  { name: "/headadmin", desc: "Promote an Admin to Owner/Head Admin status (Owner only)" },
+  { name: "/help", desc: "Display a clean breakdown of available system utilities (Everyone)" },
+  { name: "/kick", desc: "Kick a user from the active session for 2 minutes (Admin/Owner only)" },
+  { name: "/mute", desc: "Mute a user for a specified amount of minutes (Admin/Owner only)" },
+  { name: "/omoggle", desc: "Send an instant live Omoggle video match challenge (Everyone)" },
+  { name: "/permaban", desc: "Permanently ban a user from entering chat loops (Admin/Owner only)" },
+  { name: "/subscription", desc: "Modify user status parameter to basic or premium (Owner only)" },
+  { name: "/unadmin", desc: "Strip admin access parameters from a target user (Owner only)" },
+  { name: "/unban", desc: "Remove entry bans from a specific user profile (Admin/Owner only)" },
+  { name: "/unheadadmin", desc: "Demote an Owner profile back down to Admin level (Owner only)" },
+  { name: "/unmute", desc: "Lift chat silence mutes from a specific user profile (Admin/Owner only)" },
+  { name: "/undo", desc: "Undo your last local modification or text deletion step (Everyone)" },
+  { name: "/users", desc: "Display system data structures of all profiles (Admin/Owner only)" },
+  { name: "/warn", desc: "Log an official emphasized public warning to a user (Admin/Owner only)" },
+  { name: "/w", desc: "Whisper privately to other users (Everyone)" }
 ].sort((a, b) => a.name.localeCompare(b.name));
 
 let currentUser = null;
@@ -477,13 +481,10 @@ let publicChannel = null;
 let privateChannel = null;
 let userProfileChannel = null;
 
-/* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
+/* CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
   if (currentUser && !initialSnapshotReceived) {
-    if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) {
-      console.log("Failsafe suppressed: Banned state confirmed.");
-      return;
-    }
+    if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) return;
     console.warn("Failsafe triggered: Chat channel frozen. Forcing reload...");
     window.location.reload();
   }
@@ -506,7 +507,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   currentUser = user;
   currentUsername = user.email ? user.email.split("@")[0] : "User";
 
-  // Check if profile exists, if not create it
   const { data: profile, error } = await supabase
     .from("users")
     .select("*")
@@ -529,7 +529,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     currentUserBannedUntil = profile.bannedUntil || 0;
   }
 
-  // Live profile subscription
   if (userProfileChannel) userProfileChannel.unsubscribe();
   userProfileChannel = supabase
     .channel(`public:users:id=eq.${user.id}`)
@@ -830,6 +829,7 @@ async function startChat(user) {
       const commandKey = segments[0].toLowerCase();
       const parsedTargetName = segments[1]?.replace("@", "");
       const targetUser = localUsersCache.find(u => u.username.toLowerCase() === parsedTargetName?.toLowerCase());
+      const payloadText = segments.slice(2).join(" ");
 
       const isAdminPlus = currentUserRole === "admin" || currentUserRole === "owner";
       const isOwnerOnly = currentUserRole === "owner";
@@ -925,12 +925,73 @@ async function startChat(user) {
 
       if (commandKey === "/users" && isAdminPlus) {
         await loadAndCacheAllUsers();
-        let readoutStructureStr = "<span style='text-transform: uppercase; font-size: 0.8rem; color: #a855f7;'>Active User System Diagnostics Log Matrix:</span><br>";
+        let readoutStructureStr = "<span style='text-transform: uppercase; font-size: 0.8rem; color: #a855f7; font-weight:700;'>Active User System Diagnostics Log Matrix:</span><br>";
         allRegisteredUsers.forEach(u => {
           const creationDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "N/A";
           readoutStructureStr += `• ID: <strong>${u.username}</strong> | Core Contact: ${u.email} | Scope: ${u.role} | Tier: ${u.rank} | Log: ${creationDate}<br>`;
         });
         showLocalSystemMessage(readoutStructureStr, false);
+        return;
+      }
+
+      if (commandKey === "/clear") {
+        dbPublicMessages = [];
+        dbPrivateMessages = [];
+        dbHistoricalMessages = [];
+        localPendingQueue = [];
+        clearEphemeralSystemMessages();
+        renderMessages();
+        showLocalSystemMessage("Local layout records cleared successfully.");
+        return;
+      }
+
+      if (commandKey === "/help") {
+        let helpString = "<span style='text-transform: uppercase; font-size: 0.8rem; color: #6c63ff; font-weight:700;'>Available Systems Commands Matrix:</span><br>";
+        EX_COMMANDS.forEach(c => {
+          if (["/mute", "/unmute", "/ban", "/unban", "/permaban", "/deleteall", "/users", "/kick", "/warn", "/announce"].includes(c.name) && !isAdminPlus) return;
+          if (["/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser"].includes(c.name) && !isOwnerOnly) return;
+          helpString += `• <strong>${c.name}</strong> - ${c.desc}<br>`;
+        });
+        showLocalSystemMessage(helpString, false);
+        return;
+      }
+
+      if (commandKey === "/kick" && isAdminPlus) {
+        if (!targetUser) { showLocalSystemMessage("Syntax: /kick @username", true); return; }
+        await supabase.from("users").update({ bannedUntil: Date.now() + (2 * 60 * 1000) }).eq("id", targetUser.id);
+        await supabase.from("messages").insert([{
+          text: `System Alert: @${targetUser.username} was kicked from the chat by an administrator.`,
+          username: "Server",
+          userId: null,
+          role: "system",
+          isSystemMessage: true
+        }]);
+        showLocalSystemMessage(`Kicked user @${targetUser.username} for 2 minutes.`, false);
+        return;
+      }
+
+      if (commandKey === "/warn" && isAdminPlus) {
+        if (!targetUser || !payloadText) { showLocalSystemMessage("Syntax: /warn @username [reason]", true); return; }
+        await supabase.from("messages").insert([{
+          text: `⚠️ WARNING LOG: @${targetUser.username} has been formally warned. Reason: ${payloadText}`,
+          username: "Server",
+          userId: null,
+          role: "system",
+          isSystemMessage: true
+        }]);
+        return;
+      }
+
+      if (commandKey === "/announce" && isAdminPlus) {
+        const announcementMsg = segments.slice(1).join(" ");
+        if (!announcementMsg) { showLocalSystemMessage("Syntax: /announce [message]", true); return; }
+        await supabase.from("messages").insert([{
+          text: `📢 GLOBAL SYSTEM ANNOUNCEMENT: ${announcementMsg}`,
+          username: "Server",
+          userId: null,
+          role: "system",
+          isSystemMessage: true
+        }]);
         return;
       }
 
@@ -950,23 +1011,35 @@ async function startChat(user) {
         }
         return;
       }
+
+      if (!["/w", "/whisper", "/omoggle"].includes(commandKey)) {
+        showLocalSystemMessage(`System Warning: Command '${commandKey}' is unrecognized or unauthorized.`, true);
+        return;
+      }
     }
 
-    const isWhisperCommand = textToSend.startsWith("/w ");
-    const isOmoggleCommand = textToSend.startsWith("/omoggle ");
+    const segments = textToSend.split(/\s+/);
+    const primaryCommandKey = segments[0].toLowerCase();
+    const isWhisperCommand = primaryCommandKey === "/w" || primaryCommandKey === "/whisper";
+    const isOmoggleCommand = primaryCommandKey === "/omoggle";
     let targetUsernames = [];
     let parsedText = textToSend;
 
     if (isWhisperCommand || isOmoggleCommand) {
-      const parts = textToSend.split(/\s+/);
       let i = 1;
-      while (i < parts.length && parts[i].startsWith("@")) {
-        targetUsernames.push(parts[i].substring(1).toLowerCase());
-        i++;
+      while (i < segments.length) {
+        let token = segments[i];
+        if (token.startsWith("@")) {
+          targetUsernames.push(token.substring(1).toLowerCase());
+          i++;
+        } else if (targetUsernames.length === 0) {
+          targetUsernames.push(token.toLowerCase());
+          i++;
+        } else {
+          break;
+        }
       }
-      if (targetUsernames.length > 0) {
-        parsedText = parts.slice(i).join(" ");
-      }
+      parsedText = segments.slice(i).join(" ");
     }
 
     const clientSideId = "msg-" + Date.now() + Math.random().toString(36).substring(2);
@@ -1002,7 +1075,7 @@ async function startChat(user) {
         });
 
         if (participantIds.length === 1) {
-          throw new Error("No valid recipients found with those usernames in your local cache.");
+          throw new Error("No valid recipients found with those usernames in your local cache maps.");
         }
 
         const challengePayload = {
@@ -1038,7 +1111,7 @@ async function startChat(user) {
       }
     } catch (err) {
       console.error("Error sending message:", err);
-      showLocalSystemMessage(err.message || "Failed to deliver message.", true);
+      showLocalSystemMessage(err.message || "Failed to deliver message payload channels.", true);
       localPendingQueue = localPendingQueue.filter(m => m.clientSideId !== clientSideId);
       renderMessages();
     }
@@ -1073,7 +1146,6 @@ function updateAutocompleteCacheFromLoadedMessages() {
 }
 
 async function listenForNewMessages(user) {
-  // Load initial public messages
   const { data: initialPublic } = await supabase
     .from("messages")
     .select("*")
@@ -1088,7 +1160,6 @@ async function listenForNewMessages(user) {
     renderMessages();
   }
 
-  // Load initial private whispers
   const { data: initialPrivate } = await supabase
     .from("whispers")
     .select("*")
@@ -1099,7 +1170,6 @@ async function listenForNewMessages(user) {
     renderMessages();
   }
 
-  // Subscribe to public stream updates
   if (publicChannel) publicChannel.unsubscribe();
   publicChannel = supabase
     .channel('public:messages')
@@ -1124,7 +1194,6 @@ async function listenForNewMessages(user) {
     })
     .subscribe();
 
-  // Subscribe to private stream whispers 
   if (privateChannel) privateChannel.unsubscribe();
   privateChannel = supabase
     .channel('public:whispers')
@@ -1409,7 +1478,7 @@ function setupAutocompleteEngine(input) {
     if (val.startsWith("/")) {
       if (currentWordIdx === 0) {
         const clearCommands = EX_COMMANDS.filter(c => {
-          if (["/mute", "/unmute", "/ban", "/unban", "/permaban", "/deleteall", "/users"].includes(c.name)) {
+          if (["/mute", "/unmute", "/ban", "/unban", "/permaban", "/deleteall", "/users", "/kick", "/warn", "/announce"].includes(c.name)) {
             return currentUserRole === "admin" || currentUserRole === "owner";
           }
           if (["/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser"].includes(c.name)) {
@@ -1429,12 +1498,12 @@ function setupAutocompleteEngine(input) {
     }
 
     const baseCommandContext = words[0].toLowerCase();
-    const targetAutocompleteCommands = ["/w", "/omoggle", "/mute", "/unmute", "/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser", "/ban", "/unban", "/permaban"];
+    const targetAutocompleteCommands = ["/w", "/omoggle", "/mute", "/unmute", "/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser", "/ban", "/unban", "/permaban", "/kick", "/warn"];
 
     if (targetAutocompleteCommands.includes(baseCommandContext)) {
       let isTargetingPhase = true;
 
-      if (["/mute", "/unmute", "/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser", "/ban", "/unban", "/permaban"].includes(baseCommandContext) && currentWordIdx > 1) {
+      if (["/mute", "/unmute", "/admin", "/unadmin", "/headadmin", "/unheadadmin", "/subscription", "/deleteuser", "/ban", "/unban", "/permaban", "/kick", "/warn"].includes(baseCommandContext) && currentWordIdx > 1) {
         isTargetingPhase = false;
       } else {
         for (let i = 1; i < currentWordIdx; i++) {
