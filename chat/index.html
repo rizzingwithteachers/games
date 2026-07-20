@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Carson Games - Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ── THEME CONFIGURATION ──────────────────────────────── */
@@ -418,27 +418,27 @@ const supabaseKey = "sb_publishable_WnnU16Mfj1rmRJcEStOzeQ_BExLbP2C";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const EX_COMMANDS = [
-  { name: "/admin", desc: "Promote a user to Admin (Owner only)" },
-  { name: "/announce", desc: "Post a highlighted global announcement (Admin/Owner only)" },
-  { name: "/ban", desc: "Ban a user for a specific amount of hours (Admin/Owner only)" },
-  { name: "/clear", desc: "Clear your local chat display rows (Everyone)" },
-  { name: "/deleteall", desc: "Wipe all chat messages and whispers completely (Admin/Owner only)" },
-  { name: "/deleteuser", desc: "Purge a user profile row from the database framework (Owner only)" },
-  { name: "/headadmin", desc: "Promote an Admin to Owner/Head Admin status (Owner only)" },
-  { name: "/help", desc: "Display a clean breakdown of available system utilities (Everyone)" },
-  { name: "/kick", desc: "Kick a user from the active session for 2 minutes (Admin/Owner only)" },
-  { name: "/mute", desc: "Mute a user for a specified amount of minutes (Admin/Owner only)" },
-  { name: "/omoggle", desc: "Send an instant live Omoggle video match challenge (Everyone)" },
-  { name: "/permaban", desc: "Permanently ban a user from entering chat loops (Admin/Owner only)" },
-  { name: "/subscription", desc: "Modify user status parameter to basic or premium (Owner only)" },
-  { name: "/unadmin", desc: "Strip admin access parameters from a target user (Owner only)" },
-  { name: "/unban", desc: "Remove entry bans from a specific user profile (Admin/Owner only)" },
-  { name: "/unheadadmin", desc: "Demote an Owner profile back down to Admin level (Owner only)" },
-  { name: "/unmute", desc: "Lift chat silence mutes from a specific user profile (Admin/Owner only)" },
-  { name: "/undo", desc: "Undo your last local modification or text deletion step (Everyone)" },
-  { name: "/users", desc: "Display system data structures of all profiles (Admin/Owner only)" },
-  { name: "/warn", desc: "Log an official emphasized public warning to a user (Admin/Owner only)" },
-  { name: "/w", desc: "Whisper privately to other users (Everyone)" }
+  { name: "/admin", desc: "Promote a user to Admin" },
+  { name: "/announce", desc: "Post a highlighted global announcement" },
+  { name: "/ban", desc: "Ban a user for a chosen duration (e.g., /ban @user 15d spamming)" },
+  { name: "/clear", desc: "Clear your local chat display rows" },
+  { name: "/deleteall", desc: "Wipe all chat messages and whispers completely" },
+  { name: "/deleteuser", desc: "Purge a user profile row from the database framework" },
+  { name: "/headadmin", desc: "Promote an Admin to Owner/Head Admin status" },
+  { name: "/help", desc: "Display a clean breakdown of available system utilities" },
+  { name: "/kick", desc: "Kick a user from the active session for 2 minutes" },
+  { name: "/mute", desc: "Mute a user for a chosen duration (e.g., /mute @user 30m spamming)" },
+  { name: "/omoggle", desc: "Send an instant live Omoggle video match challenge" },
+  { name: "/permaban", desc: "Permanently ban a user from entering chat loops" },
+  { name: "/subscription", desc: "Modify user status parameter to basic or premium" },
+  { name: "/unadmin", desc: "Strip admin access parameters from a target user" },
+  { name: "/unban", desc: "Remove entry bans from a specific user profile" },
+  { name: "/unheadadmin", desc: "Demote an Owner profile back down to Admin level" },
+  { name: "/unmute", desc: "Lift chat silence mutes from a specific user profile" },
+  { name: "/undo", desc: "Undo your last local modification or text deletion step" },
+  { name: "/users", desc: "Display system data structures of all profiles" },
+  { name: "/warn", desc: "Log an official emphasized public warning to a user" },
+  { name: "/w", desc: "Whisper privately to other users" }
 ].sort((a, b) => a.name.localeCompare(b.name));
 
 let currentUser = null;
@@ -479,6 +479,22 @@ let processedOmoggleRedirects = new Set();
 let publicChannel = null;
 let privateChannel = null;
 let userProfileChannel = null;
+
+/* HELPER TIMEOUT FOR DURATION STRINGS */
+function parseDurationString(str) {
+  if (!str) return null;
+  const match = str.trim().match(/^(\d+)([mhdw])$/i);
+  if (!match) return null;
+  const value = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
+  switch (unit) {
+    case 'm': return value * 60 * 1000;          // Minutes
+    case 'h': return value * 60 * 60 * 1000;     // Hours
+    case 'd': return value * 24 * 60 * 60 * 1000;    // Days
+    case 'w': return value * 7 * 24 * 60 * 60 * 1000; // Weeks
+    default: return null;
+  }
+}
 
 /* CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
@@ -833,11 +849,24 @@ async function startChat(user) {
       const isAdminPlus = currentUserRole === "admin" || currentUserRole === "owner";
       const isOwnerOnly = currentUserRole === "owner";
 
+      /* ── /MUTE DURATION PARSER CONTROLS ─────────────────── */
       if (commandKey === "/mute" && isAdminPlus) {
-        const minutesValue = parseInt(segments[2]);
-        if (!targetUser || isNaN(minutesValue)) { showLocalSystemMessage("Syntax: /mute @username minutes", true); return; }
-        await supabase.from("users").update({ mutedUntil: Date.now() + (minutesValue * 60 * 1000) }).eq("id", targetUser.id);
-        showLocalSystemMessage(`Muted user @${targetUser.username} for ${minutesValue} minutes.`, false);
+        const durationStr = segments[2];
+        const durationMs = parseDurationString(durationStr);
+        const reason = segments.slice(3).join(" ") || "No explicit reason logged.";
+        
+        if (!targetUser || !durationMs) { 
+          showLocalSystemMessage("Syntax: /mute @username [time, e.g., 30m/4h/2d] [reason]", true); 
+          return; 
+        }
+        await supabase.from("users").update({ mutedUntil: Date.now() + durationMs }).eq("id", targetUser.id);
+        
+        await supabase.from("messages").insert([{
+          text: `🤫 MUTED: @${targetUser.username} has been silenced for ${durationStr}. Reason: ${reason}`,
+          username: "Server",
+          userId: null,
+          role: "system"
+        }]);
         return;
       }
 
@@ -893,11 +922,24 @@ async function startChat(user) {
         return;
       }
 
+      /* ── /BAN DURATION PARSER CONTROLS ─────────────────── */
       if (commandKey === "/ban" && isAdminPlus) {
-        const hoursValue = parseInt(segments[2]);
-        if (!targetUser || isNaN(hoursValue)) { showLocalSystemMessage("Syntax: /ban @username hours", true); return; }
-        await supabase.from("users").update({ bannedUntil: Date.now() + (hoursValue * 60 * 60 * 1000) }).eq("id", targetUser.id);
-        showLocalSystemMessage(`Banned @${targetUser.username} from entering board architecture for ${hoursValue} hours.`, false);
+        const durationStr = segments[2];
+        const durationMs = parseDurationString(durationStr);
+        const reason = segments.slice(3).join(" ") || "No explicit reason logged.";
+        
+        if (!targetUser || !durationMs) { 
+          showLocalSystemMessage("Syntax: /ban @username [time, e.g., 2h/15d/4w] [reason]", true); 
+          return; 
+        }
+        await supabase.from("users").update({ bannedUntil: Date.now() + durationMs }).eq("id", targetUser.id);
+        
+        await supabase.from("messages").insert([{
+          text: `🔨 BANNED: @${targetUser.username} has been banned for ${durationStr}. Reason: ${reason}`,
+          username: "Server",
+          userId: null,
+          role: "system"
+        }]);
         return;
       }
 
@@ -911,7 +953,13 @@ async function startChat(user) {
       if (commandKey === "/permaban" && isAdminPlus) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /permaban @username", true); return; }
         await supabase.from("users").update({ bannedUntil: Date.now() + (100 * 365 * 24 * 60 * 60 * 1000) }).eq("id", targetUser.id);
-        showLocalSystemMessage(`Permanently banned @${targetUser.username} from entering chat framework loops.`, false);
+        
+        await supabase.from("messages").insert([{
+          text: `❌ PERMABANNED: @${targetUser.username} has been permanently banned from the server grid.`,
+          username: "Server",
+          userId: null,
+          role: "system"
+        }]);
         return;
       }
 
