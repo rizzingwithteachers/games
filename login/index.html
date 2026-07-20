@@ -64,35 +64,12 @@
 </main>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-
-/* CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
-  authDomain: "carson-games.firebaseapp.com",
-  projectId: "carson-games",
-  storageBucket: "carson-games.firebasestorage.app",
-  messagingSenderId: "856520252558",
-  appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+/* SUPABASE CONFIG */
+const supabaseUrl = "https://hbynnertatvxpvtqctyg.supabase.co";
+const supabaseKey = "sb_publishable_WnnU16Mfj1rmRJcEStOzeQ_BExLbP2C";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 /* ELEMENTS */
 const form = document.getElementById("auth-form");
@@ -124,23 +101,50 @@ async function signUp(username, emailVal, passwordVal) {
     return false;
   }
 
-  const cred = await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
-
-  // OPTIMIZATION: Provision default role level and entry tier rank properties instantly on create
-  await setDoc(doc(db, "users", cred.user.uid), {
-    username: username.trim(),
+  const { data, error } = await supabase.auth.signUp({
     email: emailVal,
-    role: "user",
-    rank: "basic",
-    createdAt: serverTimestamp()
+    password: passwordVal
   });
+
+  if (error) {
+    alert(error.message);
+    return false;
+  }
+
+  if (data?.user) {
+    // Inject profile properties directly inside your public schema tracking system
+    const { error: profileError } = await supabase
+      .from("users")
+      .insert([
+        {
+          id: data.user.id,
+          username: username.trim(),
+          email: emailVal,
+          role: "user",
+          rank: "basic",
+          createdAt: Date.now()
+        }
+      ]);
+
+    if (profileError) {
+      console.error("Failed structural profile provisioning logic maps:", profileError.message);
+    }
+  }
 
   return true;
 }
 
 /* SIGN IN */
 async function signIn(emailVal, passwordVal) {
-  await signInWithEmailAndPassword(auth, emailVal, passwordVal);
+  const { error } = await supabase.auth.signInWithPassword({
+    email: emailVal,
+    password: passwordVal
+  });
+
+  if (error) {
+    alert(error.message);
+    return false;
+  }
   return true;
 }
 
@@ -191,9 +195,11 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-/* FIXED AUTH CHECK */
-onAuthStateChanged(auth, (user) => {
-  if (!user) return;
+/* AUTH CHECK */
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session?.user) {
+    // Keep user state tracked if needed
+  }
 });
 </script>
 
