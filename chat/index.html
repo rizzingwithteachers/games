@@ -480,22 +480,27 @@ let publicChannel = null;
 let privateChannel = null;
 let userProfileChannel = null;
 
-/* HELPER TIMEOUT FOR DURATION STRINGS */
+/* UPGRADED HELPER TIMEOUT FOR ALL DURATION STRINGS */
 function parseDurationString(str) {
   if (!str) return null;
-  const match = str.trim().match(/^(\d+)([mhdw])$/i);
+  // Captures the number and the unit (s, m, h, d, w, mo, y)
+  const match = str.trim().match(/^(\d+)(s|m|h|d|w|mo|y)$/i);
   if (!match) return null;
+  
   const value = parseInt(match[1], 10);
   const unit = match[2].toLowerCase();
+  
   switch (unit) {
-    case 'm': return value * 60 * 1000;          // Minutes
-    case 'h': return value * 60 * 60 * 1000;     // Hours
-    case 'd': return value * 24 * 60 * 60 * 1000;    // Days
-    case 'w': return value * 7 * 24 * 60 * 60 * 1000; // Weeks
+    case 's': return value * 1000;                        // Seconds
+    case 'm': return value * 60 * 1000;                   // Minutes
+    case 'h': return value * 60 * 60 * 1000;              // Hours
+    case 'd': return value * 24 * 60 * 60 * 1000;         // Days
+    case 'w': return value * 7 * 24 * 60 * 60 * 1000;     // Weeks
+    case 'mo': return value * 30 * 24 * 60 * 60 * 1000;   // Months (Standardized to 30 Days)
+    case 'y': return value * 365 * 24 * 60 * 60 * 1000;   // Years (Standardized to 365 Days)
     default: return null;
   }
 }
-
 /* CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
   if (currentUser && !initialSnapshotReceived) {
