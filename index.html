@@ -4,108 +4,117 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Carson Games</title>
-  <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
-    .hero {
-      text-align: center;
-      padding: 6rem 2rem 4rem;
-      background: radial-gradient(circle at top center, rgba(108,99,255,0.08) 0%, transparent 65%);
+    /* ── BASE CORE THEME ARCHITECTURE VARIABLES ──────────────── */
+    :root {
+      --bg: #06060c;
+      --surface: #0c0d19;
+      --card: #121426;
+      --card-hover: #181b33;
+      --border: rgba(255, 255, 255, 0.06);
+      --text: #f1f5f9;
+      --text-muted: #64748b;
+      --accent: #6c63ff;
+      --radius-m: 8px;
+      --radius-l: 14px;
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-display: 'Outfit', system-ui, sans-serif;
+      --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
     }
-    .hero h1 {
-      font-family: var(--font-display);
-      font-size: 3.5rem;
-      font-weight: 800;
-      line-height: 1.1;
-      margin-bottom: 1rem;
-      animation: textGlow 3s ease-in-out infinite;
-    }
-    @keyframes textGlow {
-      0%, 100% { text-shadow: 0 0 20px rgba(108, 99, 255, 0.2); }
-      50% { text-shadow: 0 0 40px rgba(108, 99, 255, 0.4); }
-    }
-    .hero h1 span {
-      background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-size: 200% 200%;
-      animation: gradientShift 4s ease infinite;
-    }
-    @keyframes gradientShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    .hero p {
-      color: var(--text-muted);
-      max-width: 580px;
-      margin: 0 auto 2rem;
-      font-size: 1.1rem;
-      animation: fadeInUp 0.8s ease-out 0.3s both;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: none; }
-    }
-    .grid {
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; transition: background 0.3s ease, color 0.3s ease; }
+
+    /* ── COMPONENT BUTTON AND TIMELINE STYLING MODULES ──────── */
+    header { background: rgba(12, 13, 25, 0.75); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 999; }
+    .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; text-decoration: none; color: var(--text); }
+    nav ul { display: flex; list-style: none; gap: 1.5rem; align-items: center; }
+    nav a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 0.9rem; padding: 6px 12px; border-radius: var(--radius-m); transition: all 0.3s var(--ease); }
+    nav a:hover, nav a.active { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+    
+    .nav-auth-btn, .btn-primary { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 999px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer; border: none; transition: all 0.3s var(--ease); }
+    .btn-primary { border-radius: var(--radius-m); }
+    .nav-auth-btn:hover, .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+    .hero { text-align: center; padding: 4rem 2rem 2rem; max-width: 1200px; margin: 0 auto; }
+    .logobig { font-family: var(--font-display); font-size: 3.5rem; font-weight: 800; text-decoration: none; color: var(--text); margin-bottom: 0.5rem; display: block; }
+    .hero p { color: var(--text-muted); font-size: 1.2rem; margin-bottom: 2.5rem; }
+
+    /* ── TRACKS AND COLUMNS BOXES GRID PARAMETERS ─────────── */
+    .dashboard-billboards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 2rem;
       max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 2rem 6rem;
-      width: 100%;
+      margin: 0 auto 3rem;
+      padding: 0 2rem;
     }
-    .card {
+    .billboard-square {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius-l);
-      padding: 2.5rem 2rem;
-      transition: all 0.35s var(--ease);
+      padding: 2rem;
+      aspect-ratio: 1 / 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      position: relative;
-      overflow: hidden;
+      align-items: flex-start;
+      text-align: left;
+      height: 100%;
+      max-height: 480px; /* Enforces clean square metrics cutoff */
     }
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(108, 99, 255, 0.1) 0%, transparent 60%);
-      opacity: 0;
-      transition: opacity 0.35s var(--ease);
-      pointer-events: none;
-    }
-    .card:hover {
-      transform: translateY(-8px) scale(1.02);
-      border-color: rgba(108, 99, 255, 0.5);
-      background: var(--card-hover);
-      box-shadow: 0 24px 48px rgba(108, 99, 255, 0.2), 0 0 40px rgba(108, 99, 255, 0.1);
-    }
-    .card:hover::before {
-      opacity: 1;
-    }
-    .card h3 {
+    .billboard-square h2 {
       font-family: var(--font-display);
-      font-size: 1.4rem;
-      margin-bottom: 0.75rem;
-      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--border);
+      width: 100%;
+      margin-bottom: 1.25rem;
     }
-    .card p {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      line-height: 1.6;
-      margin-bottom: 2rem;
-      text-align: center;
+    .billboard-scroller {
+      flex: 1;
+      width: 100%;
+      overflow-y: auto;
+      padding-right: 0.5rem;
     }
-    .card .btn-primary { margin-top: auto; justify-content: center; align-self: center; }
+    .billboard-scroller::-webkit-scrollbar { width: 6px; }
+    .billboard-scroller::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* Feed item templates */
+    .feed-group { margin-bottom: 1.5rem; }
+    .feed-group h4 { font-family: var(--font-display); color: var(--accent); margin-bottom: 0.5rem; font-size: 1.1rem; }
+    .feed-group ul { list-style: none; padding-left: 0.5rem; }
+    .feed-group li { color: #cbd5e1; font-size: 0.95rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem; }
+    .feed-group li::before { content: ">"; color: var(--text-muted); font-weight: bold; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; padding: 0 2rem 6rem; width: 100%; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 2.5rem 2rem; display: flex; flex-direction: column; align-items: center; }
+    .card h3 { font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 0.75rem; }
+    .card p { color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-bottom: 2rem; }
+    .card .btn-primary { margin-top: auto; }
+
+    /* ── FLEXIBLE COMPLEMENTARY THEME OVERRIDE CLASSES ─────── */
+    body.theme-red { --bg: #1c0505; --surface: #2d0a0a; --card: #3a1010; --accent: #ff4d4d; }
+    body.theme-orange { --bg: #1c0f05; --surface: #2d190a; --card: #3a2210; --accent: #ff944d; }
+    body.theme-yellow { --bg: #161402; --surface: #262205; --card: #332d0a; --accent: #ffdb4d; }
+    body.theme-green { --bg: #03140a; --surface: #072413; --card: #0c331c; --accent: #4dff88; }
+    body.theme-blue { --bg: #030a1c; --surface: #07132d; --card: #0c1c3a; --accent: #4da6ff; }
+    body.theme-purple { --bg: #0f031c; --surface: #19072d; --card: #220c3a; --accent: #b34dff; }
+    body.theme-stars { background-image: url('assets/stars.png'); background-size: cover; background-attachment: fixed; }
+    body.theme-lightning { background-image: url('assets/lightning.png'); background-size: cover; background-attachment: fixed; }
+    body.theme-teal-magenta { background-image: linear-gradient(135deg, #0d2b30 0%, #300d2b 100%); }
+    body.theme-blue-pink { background-image: url('assets/blue+pink.png'); background-size: cover; background-attachment: fixed; }
+    body.theme-blue-spots { background-image: url('assets/blue-spots.png'); background-size: repeat; }
+    body.theme-white-spots { background-image: url('assets/white-spots.png'); background-size: repeat; }
   </style>
 </head>
 <body>
 
   <header>
     <div class="nav-container">
-      <a href="" class="logo">CarsonGames</a>
+      <a href="#" class="logo">CarsonGames</a>
       <nav>
         <ul>
           <li><a href="#" class="active">Home</a></li>
@@ -120,27 +129,50 @@
   </header>
 
   <section class="hero">
-    <a href="" class="logobig">CarsonGames</a>
+    <a href="#" class="logobig">CarsonGames</a>
     <p>New website, new games!</p>
-    <a id="hero-signin-btn" href="login/" class="btn-primary">Sign In</a>
+    <a id="hero-signin-btn" href="login/" class="btn-primary" style="margin-bottom: 2rem;">Sign In</a>
+  </section>
+
+  <section class="dashboard-billboards">
+    <div class="billboard-square">
+      <h2>Update 1.1</h2>
+      <div class="billboard-scroller">
+        <div class="feed-group">
+          <h4>Recent Deployments</h4>
+          <ul>
+            <li>created</li>
+            <li>new chat</li>
+            <li>accounts</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="billboard-square">
+      <h2>Announcements</h2>
+      <div id="announcements-root" class="billboard-scroller">
+        <div style="color: var(--text-muted); font-size: 0.9rem;">Connecting to central update feed...</div>
+      </div>
+    </div>
   </section>
 
   <main class="grid">
     <div class="card">
       <h3>Games</h3>
-      <p> </p>
+      <p>Access high-performance retro classics instantly inside your browser pipeline parameters.</p>
       <a href="games/" class="btn-primary">Open Games</a>
     </div>
 
     <div class="card">
       <h3>Omoggle</h3>
-      <p> </p>
+      <p>Connect instantly to active user channels through real-time security checking loops.</p>
       <a href="omoggle/" class="btn-primary">Open Omoggle</a>
     </div>
 
     <div class="card">
       <h3>Chat</h3>
-      <p> </p>
+      <p>Message global network rooms utilizing complete local control system layers.</p>
       <a href="chat/" class="btn-primary">Open Chat</a>
     </div>
   </main>
@@ -156,15 +188,14 @@
     const container = document.getElementById('auth-button-container');
     const heroSignInBtn = document.getElementById('hero-signin-btn');
 
-    if (container) {
-      container.innerHTML = '';
-      container.style.display = 'none';
+    /* INITIAL FAST-LOAD LOCAL STORAGE INTERCEPTOR */
+    const localThemeCached = localStorage.getItem('carson_theme');
+    if (localThemeCached && localThemeCached !== 'default') {
+      document.body.className = 'theme-' + localThemeCached;
     }
-    if (heroSignInBtn) heroSignInBtn.style.display = 'none';
 
-    const renderAuthState = (user) => {
+    const renderAuthState = async (user) => {
       if (!container) return;
-
       if (user) {
         container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
         container.style.display = '';
@@ -176,11 +207,19 @@
             e.preventDefault();
             try {
               await supabase.auth.signOut();
+              localStorage.removeItem('carson_theme');
               window.location.reload();
             } catch (err) {
               console.error('Logout error:', err);
             }
           });
+        }
+
+        // Synchronize remote database themes to local profile
+        const { data: profile } = await supabase.from("users").select("background").eq("id", user.id).single();
+        if (profile && profile.background) {
+          localStorage.setItem('carson_theme', profile.background);
+          document.body.className = profile.background === 'default' ? '' : 'theme-' + profile.background;
         }
       } else {
         container.innerHTML = '<a href="login/" class="nav-auth-btn">Sign In</a>';
@@ -189,11 +228,45 @@
       }
     };
 
-    // Listen directly to Supabase authentication transitions
+    /* LIVE ANNOUNCEMENT DATABASE FETCH ENGINE */
+    const renderLiveAnnouncements = async () => {
+      const targetFeed = document.getElementById("announcements-root");
+      if (!targetFeed) return;
+      
+      const { data: records, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error || !records || records.length === 0) {
+        targetFeed.innerHTML = `
+          <div class="feed-group">
+            <h4>Minecraft Logs</h4>
+            <ul><li>Minecraft 7/22/2026</li></ul>
+          </div>`;
+        return;
+      }
+
+      targetFeed.innerHTML = "";
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "feed-group";
+      groupDiv.innerHTML = `<h4>Server Bulletins</h4><ul id="bulletin-list-target"></ul>`;
+      targetFeed.appendChild(groupDiv);
+
+      const listContainer = document.getElementById("bulletin-list-target");
+      records.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item.text;
+        listContainer.appendChild(li);
+      });
+    };
+
     supabase.auth.onAuthStateChange((event, session) => {
       renderAuthState(session?.user || null);
     });
-  </script>
 
+    // Run core engine
+    renderLiveAnnouncements();
+  </script>
 </body>
 </html>
