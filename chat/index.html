@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Carson Games - Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ── THEME CONFIGURATION ──────────────────────────────── */
@@ -480,10 +480,9 @@ let publicChannel = null;
 let privateChannel = null;
 let userProfileChannel = null;
 
-/* UPGRADED HELPER TIMEOUT FOR ALL DURATION STRINGS */
+/* HELPER TIMEOUT FOR ALL DURATION STRINGS */
 function parseDurationString(str) {
   if (!str) return null;
-  // Captures the number and the unit (s, m, h, d, w, mo, y)
   const match = str.trim().match(/^(\d+)(s|m|h|d|w|mo|y)$/i);
   if (!match) return null;
   
@@ -496,11 +495,12 @@ function parseDurationString(str) {
     case 'h': return value * 60 * 60 * 1000;              // Hours
     case 'd': return value * 24 * 60 * 60 * 1000;         // Days
     case 'w': return value * 7 * 24 * 60 * 60 * 1000;     // Weeks
-    case 'mo': return value * 30 * 24 * 60 * 60 * 1000;   // Months (Standardized to 30 Days)
-    case 'y': return value * 365 * 24 * 60 * 60 * 1000;   // Years (Standardized to 365 Days)
+    case 'mo': return value * 30 * 24 * 60 * 60 * 1000;   // Months (30 Days)
+    case 'y': return value * 365 * 24 * 60 * 60 * 1000;   // Years (365 Days)
     default: return null;
   }
 }
+
 /* CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
   if (currentUser && !initialSnapshotReceived) {
@@ -854,24 +854,18 @@ async function startChat(user) {
       const isAdminPlus = currentUserRole === "admin" || currentUserRole === "owner";
       const isOwnerOnly = currentUserRole === "owner";
 
-      /* ── /MUTE DURATION PARSER CONTROLS ─────────────────── */
+      /* ── /MUTE LOCAL-ONLY CONTROL ───────────────────────── */
       if (commandKey === "/mute" && isAdminPlus) {
         const durationStr = segments[2];
         const durationMs = parseDurationString(durationStr);
         const reason = segments.slice(3).join(" ") || "No explicit reason logged.";
         
         if (!targetUser || !durationMs) { 
-          showLocalSystemMessage("Syntax: /mute @username [time, e.g., 30m/4h/2d] [reason]", true); 
+          showLocalSystemMessage("Syntax: /mute @username [time, e.g., 45s/30m/4h] [reason]", true); 
           return; 
         }
         await supabase.from("users").update({ mutedUntil: Date.now() + durationMs }).eq("id", targetUser.id);
-        
-        await supabase.from("messages").insert([{
-          text: `🤫 MUTED: @${targetUser.username} has been silenced for ${durationStr}. Reason: ${reason}`,
-          username: "Server",
-          userId: null,
-          role: "system"
-        }]);
+        showLocalSystemMessage(`Muted user @${targetUser.username} for ${durationStr}. Reason: ${reason}`, false);
         return;
       }
 
@@ -927,24 +921,18 @@ async function startChat(user) {
         return;
       }
 
-      /* ── /BAN DURATION PARSER CONTROLS ─────────────────── */
+      /* ── /BAN LOCAL-ONLY CONTROL ────────────────────────── */
       if (commandKey === "/ban" && isAdminPlus) {
         const durationStr = segments[2];
         const durationMs = parseDurationString(durationStr);
         const reason = segments.slice(3).join(" ") || "No explicit reason logged.";
         
         if (!targetUser || !durationMs) { 
-          showLocalSystemMessage("Syntax: /ban @username [time, e.g., 2h/15d/4w] [reason]", true); 
+          showLocalSystemMessage("Syntax: /ban @username [time, e.g., 10s/2h/15d/3mo] [reason]", true); 
           return; 
         }
         await supabase.from("users").update({ bannedUntil: Date.now() + durationMs }).eq("id", targetUser.id);
-        
-        await supabase.from("messages").insert([{
-          text: `🔨 BANNED: @${targetUser.username} has been banned for ${durationStr}. Reason: ${reason}`,
-          username: "Server",
-          userId: null,
-          role: "system"
-        }]);
+        showLocalSystemMessage(`Banned user @${targetUser.username} for ${durationStr}. Reason: ${reason}`, false);
         return;
       }
 
@@ -955,16 +943,11 @@ async function startChat(user) {
         return;
       }
 
+      /* ── /PERMABAN LOCAL-ONLY CONTROL ───────────────────── */
       if (commandKey === "/permaban" && isAdminPlus) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /permaban @username", true); return; }
         await supabase.from("users").update({ bannedUntil: Date.now() + (100 * 365 * 24 * 60 * 60 * 1000) }).eq("id", targetUser.id);
-        
-        await supabase.from("messages").insert([{
-          text: `❌ PERMABANNED: @${targetUser.username} has been permanently banned from the server grid.`,
-          username: "Server",
-          userId: null,
-          role: "system"
-        }]);
+        showLocalSystemMessage(`Permanently banned @${targetUser.username} from entering chat framework loops.`, false);
         return;
       }
 
