@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Carson Games - Chat</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ── THEME CONFIGURATION ──────────────────────────────── */
@@ -411,40 +411,13 @@
   </main>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  limit,
-  startAfter,
-  getDocs,
-  onSnapshot,
-  serverTimestamp,
-  doc,
-  getDoc,
-  where
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+// Import official Supabase client directly via ESM
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/* FIREBASE CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyAaCIfKIDu8-XcRcidBY5pTMUQJA4wZ1Ic",
-  authDomain: "carson-games.firebaseapp.com",
-  projectId: "carson-games",
-  storageBucket: "carson-games.firebasestorage.app",
-  messagingSenderId: "856520252558",
-  appId: "1:856520252558:web:e89d6b835c9ffe89da3ddf"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+/* SUPABASE CONFIG */
+const supabaseUrl = "https://hbynnertatvxpvtqctyg.supabase.co";
+const supabaseKey = "sb_publishable_WnnU16Mfj1rmRJcEStOzeQ_BExLbP2C";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const EX_COMMANDS = [
   { name: "/admin", desc: "Changes user permissions to allow for more control" },
@@ -473,7 +446,7 @@ let currentUserBannedUntil = 0;
 
 let lastMessageTime = 0;
 const MESSAGE_COOLDOWN = 2000; 
-let lastLoadedTimestamp = null;
+let historyPageOffset = 0;
 let isLoadingMore = false;
 let initialSnapshotReceived = false; 
 let isFirstLoad = true; 
@@ -499,12 +472,14 @@ let lastActionLog = null;
 let activeMuteInterval = null;
 let ephemeralSystemMessages = [];
 let processedOmoggleRedirects = new Set();
-let initialPublicSnapshotHandled = false;
-let initialPrivateSnapshotHandled = false;
+
+let publicChannel = null;
+let privateChannel = null;
+let userProfileChannel = null;
 
 /* 2-SECOND CONNECTION FAILSAFE TIMEOUT */
 setTimeout(() => {
-  if (auth.currentUser && !initialSnapshotReceived) {
+  if (currentUser && !initialSnapshotReceived) {
     if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) {
       console.log("Failsafe suppressed: Banned state confirmed.");
       return;
@@ -515,7 +490,8 @@ setTimeout(() => {
 }, 2000);
 
 /* AUTH CHECK & SYNC USER ROLES / MUTE STATE */
-onAuthStateChanged(auth, async (user) => {
+supabase.auth.onAuthStateChange(async (event, session) => {
+  const user = session?.user || null;
   if (!user) {
     currentUser = null;
     currentUsername = "User";
@@ -530,16 +506,40 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   currentUsername = user.email ? user.email.split("@")[0] : "User";
 
-  const userRef = doc(db, "users", user.uid);
+  // Check if profile exists, if not create it
+  const { data: profile, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", user.id)
+    .single();
 
-  onSnapshot(userRef, (snap) => {
-    if (snap.exists()) {
-      const data = snap.data();
-      currentUsername = data.username || user.email.split("@")[0];
+  if (error || !profile) {
+    await supabase.from("users").insert({
+      id: user.id,
+      username: currentUsername,
+      email: user.email,
+      role: "user",
+      rank: "none",
+      createdAt: Date.now()
+    });
+  } else {
+    currentUsername = profile.username || currentUsername;
+    currentUserRole = profile.role || "user";
+    currentUserMutedUntil = profile.mutedUntil || 0;
+    currentUserBannedUntil = profile.bannedUntil || 0;
+  }
+
+  // Live profile subscription
+  if (userProfileChannel) userProfileChannel.unsubscribe();
+  userProfileChannel = supabase
+    .channel(`public:users:id=eq.${user.id}`)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${user.id}` }, payload => {
+      const data = payload.new;
+      currentUsername = data.username || currentUsername;
       currentUserRole = data.role || "user";
       currentUserMutedUntil = data.mutedUntil || 0;
       currentUserBannedUntil = data.bannedUntil || 0;
-      
+
       if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) {
         handleBannedUserDisplay();
       } else {
@@ -560,18 +560,12 @@ onAuthStateChanged(auth, async (user) => {
           }
         }
       }
-    } else {
-      setDoc(userRef, {
-        username: user.email.split("@")[0],
-        email: user.email,
-        role: "user",
-        rank: "none",
-        createdAt: Date.now()
-      }, { merge: true });
-      currentUsername = user.email.split("@")[0];
-      currentUserRole = "user";
-    }
-  });
+    })
+    .subscribe();
+
+  if (currentUserBannedUntil && Date.now() < currentUserBannedUntil) {
+    handleBannedUserDisplay();
+  }
 
   updateAuthButtonState(true);
   await startChat(user);
@@ -611,22 +605,19 @@ function handleBannedUserDisplay() {
 
 async function loadAndCacheAllUsers() {
   try {
-    const snap = await getDocs(collection(db, "users"));
-    const fetchedUsers = snap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        username: data.username || "User",
-        email: data.email || "N/A",
-        role: data.role || "user",
-        rank: data.rank || "none",
-        createdAt: data.createdAt || 0,
-        avatar: data.username ? data.username[0].toUpperCase() : "U"
-      };
-    });
-
-    allRegisteredUsers = fetchedUsers;
-    localUsersCache = fetchedUsers;
+    const { data: usersData } = await supabase.from("users").select("*");
+    if (usersData) {
+      allRegisteredUsers = usersData.map(u => ({
+        id: u.id,
+        username: u.username || "User",
+        email: u.email || "N/A",
+        role: u.role || "user",
+        rank: u.rank || "none",
+        createdAt: u.createdAt || 0,
+        avatar: u.username ? u.username[0].toUpperCase() : "U"
+      }));
+      localUsersCache = allRegisteredUsers;
+    }
   } catch (err) {
     console.error("Failed to compile master user profile storage parameters:", err);
   }
@@ -643,7 +634,7 @@ function showLocalSystemMessage(text, isError = false) {
     isError,
     isSystemMessage: true,
     username: "Server",
-    timestamp: new Date()
+    timestamp: new Date().toISOString()
   });
   renderMessages(true);
 }
@@ -660,7 +651,7 @@ function updateAuthButtonState(isLoggedIn) {
       logoutBtn.onclick = async (e) => {
         e.preventDefault();
         try {
-          await signOut(auth);
+          await supabase.auth.signOut();
           window.location.href = "../login/";
         } catch (err) {
           console.error('Logout error:', err);
@@ -687,7 +678,7 @@ function getMentionTargets(text) {
 }
 
 function shouldNotifyForMention(msgData) {
-  if (!msgData || !msgData.text || !currentUser || msgData.senderId === currentUser.uid || msgData.userId === currentUser.uid) return false;
+  if (!msgData || !msgData.text || !currentUser || msgData.senderId === currentUser.id || msgData.userId === currentUser.id) return false;
 
   const targets = getMentionTargets(msgData.text);
   if (targets.length === 0) return false;
@@ -808,12 +799,12 @@ async function startChat(user) {
     
     if (isEditingMode) {
       try {
-        const docRef = doc(db, editingCollectionTarget, editingMessageId);
-        const previousSnapshot = await getDoc(docRef);
-        if (previousSnapshot.exists()) {
-          lastActionLog = { type: "edit", collection: editingCollectionTarget, id: editingMessageId, data: previousSnapshot.data() };
-        }
-        await updateDoc(docRef, { text: textToSend });
+        const { error } = await supabase
+          .from(editingCollectionTarget)
+          .update({ text: textToSend })
+          .eq("id", editingMessageId);
+          
+        if (error) throw error;
       } catch (err) {
         console.error("Error writing message update modification:", err);
       }
@@ -846,42 +837,42 @@ async function startChat(user) {
       if (commandKey === "/mute" && isAdminPlus) {
         const minutesValue = parseInt(segments[2]);
         if (!targetUser || isNaN(minutesValue)) { showLocalSystemMessage("Syntax: /mute @username minutes", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { mutedUntil: Date.now() + (minutesValue * 60 * 1000) });
+        await supabase.from("users").update({ mutedUntil: Date.now() + (minutesValue * 60 * 1000) }).eq("id", targetUser.id);
         showLocalSystemMessage(`Muted user @${targetUser.username} for ${minutesValue} minutes.`, false);
         return;
       }
 
       if (commandKey === "/unmute" && isAdminPlus) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /unmute @username", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { mutedUntil: 0 });
+        await supabase.from("users").update({ mutedUntil: 0 }).eq("id", targetUser.id);
         showLocalSystemMessage(`Unmuted user @${targetUser.username}.`, false);
         return;
       }
 
       if (commandKey === "/admin" && isOwnerOnly) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /admin @username", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { role: "admin" });
+        await supabase.from("users").update({ role: "admin" }).eq("id", targetUser.id);
         showLocalSystemMessage(`Promoted @${targetUser.username} to Admin.`, false);
         return;
       }
 
       if (commandKey === "/unadmin" && isOwnerOnly) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /unadmin @username", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { role: "user" });
+        await supabase.from("users").update({ role: "user" }).eq("id", targetUser.id);
         showLocalSystemMessage(`Demoted @${targetUser.username} to standard User level.`, false);
         return;
       }
 
       if (commandKey === "/headadmin" && isOwnerOnly) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /headadmin @username", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { role: "owner" });
+        await supabase.from("users").update({ role: "owner" }).eq("id", targetUser.id);
         showLocalSystemMessage(`Promoted @${targetUser.username} to Head Admin/Owner privileges.`, false);
         return;
       }
 
       if (commandKey === "/unheadadmin" && isOwnerOnly) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /unheadadmin @username", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { role: "admin" });
+        await supabase.from("users").update({ role: "admin" }).eq("id", targetUser.id);
         showLocalSystemMessage(`Stripped Head Admin access from @${targetUser.username}. Assigned Admin parameters.`, false);
         return;
       }
@@ -889,7 +880,7 @@ async function startChat(user) {
       if (commandKey === "/subscription" && isOwnerOnly) {
         const chosenRank = segments[2]?.toLowerCase();
         if (!targetUser || (chosenRank !== "basic" && chosenRank !== "premium")) { showLocalSystemMessage("Syntax: /subscription @username basic/premium", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { rank: chosenRank });
+        await supabase.from("users").update({ rank: chosenRank }).eq("id", targetUser.id);
         showLocalSystemMessage(`Updated subscription framework parameter for @${targetUser.username} to [${chosenRank}].`, false);
         await loadAndCacheAllUsers();
         return;
@@ -897,7 +888,7 @@ async function startChat(user) {
 
       if (commandKey === "/deleteuser" && isOwnerOnly) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /deleteuser @username", true); return; }
-        await deleteDoc(doc(db, "users", targetUser.id));
+        await supabase.from("users").delete().eq("id", targetUser.id);
         showLocalSystemMessage(`Purged user database authentication parameters for user identity: @${targetUser.username}.`, false);
         await loadAndCacheAllUsers();
         return;
@@ -906,30 +897,28 @@ async function startChat(user) {
       if (commandKey === "/ban" && isAdminPlus) {
         const hoursValue = parseInt(segments[2]);
         if (!targetUser || isNaN(hoursValue)) { showLocalSystemMessage("Syntax: /ban @username hours", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { bannedUntil: Date.now() + (hoursValue * 60 * 60 * 1000) });
+        await supabase.from("users").update({ bannedUntil: Date.now() + (hoursValue * 60 * 60 * 1000) }).eq("id", targetUser.id);
         showLocalSystemMessage(`Banned @${targetUser.username} from entering board architecture for ${hoursValue} hours.`, false);
         return;
       }
 
       if (commandKey === "/unban" && isAdminPlus) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /unban @username", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { bannedUntil: 0 });
+        await supabase.from("users").update({ bannedUntil: 0 }).eq("id", targetUser.id);
         showLocalSystemMessage(`Lifted server entry ban parameters from user profile @${targetUser.username}.`, false);
         return;
       }
 
       if (commandKey === "/permaban" && isAdminPlus) {
         if (!targetUser) { showLocalSystemMessage("Syntax: /permaban @username", true); return; }
-        await updateDoc(doc(db, "users", targetUser.id), { bannedUntil: Date.now() + (100 * 365 * 24 * 60 * 60 * 1000) });
+        await supabase.from("users").update({ bannedUntil: Date.now() + (100 * 365 * 24 * 60 * 60 * 1000) }).eq("id", targetUser.id);
         showLocalSystemMessage(`Permanently banned @${targetUser.username} from entering chat framework loops.`, false);
         return;
       }
 
       if (commandKey === "/deleteall" && isAdminPlus) {
-        const publicSnap = await getDocs(collection(db, "messages"));
-        publicSnap.forEach(async (documentItem) => await deleteDoc(doc(db, "messages", documentItem.id)));
-        const whispersSnap = await getDocs(collection(db, "whispers"));
-        whispersSnap.forEach(async (documentItem) => await deleteDoc(doc(db, "whispers", documentItem.id)));
+        await supabase.from("messages").delete().neq("id", "-1");
+        await supabase.from("whispers").delete().neq("id", "-1");
         showLocalSystemMessage("Database tables successfully optimized. Purged records completely.", false);
         return;
       }
@@ -949,10 +938,10 @@ async function startChat(user) {
         if (!lastActionLog) { showLocalSystemMessage("No valid local environment modifications recorded on the action track stack.", true); return; }
         try {
           if (lastActionLog.type === "delete") {
-            await setDoc(doc(db, lastActionLog.collection, lastActionLog.id), lastActionLog.data);
+            await supabase.from(lastActionLog.collection).insert([lastActionLog.data]);
             showLocalSystemMessage("Undo Executed: Restored deleted document record.");
           } else if (lastActionLog.type === "edit") {
-            await updateDoc(doc(db, lastActionLog.collection, lastActionLog.id), { text: lastActionLog.data.text });
+            await supabase.from(lastActionLog.collection).update({ text: lastActionLog.data.text }).eq("id", lastActionLog.id);
             showLocalSystemMessage("Undo Executed: Reverted text modifications to previous step state.");
           }
           lastActionLog = null;
@@ -985,8 +974,8 @@ async function startChat(user) {
     const pendingMsgData = {
       text: isOmoggleCommand && !parsedText ? "Do you want to duel in Omoggle?" : parsedText,
       username: currentUsername,
-      userId: user.uid,
-      senderId: user.uid,
+      userId: user.id,
+      senderId: user.id,
       avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
       timestamp: null,
       isPending: true,
@@ -1003,7 +992,7 @@ async function startChat(user) {
 
     try {
       if (targetUsernames.length > 0) {
-        let participantIds = [user.uid];
+        let participantIds = [user.id];
         
         targetUsernames.forEach(uname => {
           const matchedUser = localUsersCache.find(u => u.username.toLowerCase() === uname);
@@ -1019,12 +1008,12 @@ async function startChat(user) {
         const challengePayload = {
           text: isOmoggleCommand && !parsedText ? "Do you want to duel in Omoggle?" : parsedText,
           username: currentUsername,
-          senderId: user.uid,
+          senderId: user.id,
           avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
-          timestamp: serverTimestamp(),
           participants: participantIds,
           role: currentUserRole,
-          clientSideId: clientSideId
+          clientSideId: clientSideId,
+          isWhisper: true
         };
 
         if (isOmoggleCommand) {
@@ -1033,17 +1022,19 @@ async function startChat(user) {
           challengePayload.isSystemMessage = true;
         }
 
-        await addDoc(collection(db, "whispers"), challengePayload);
+        const { error } = await supabase.from("whispers").insert([challengePayload]);
+        if (error) throw error;
       } else {
-        await addDoc(collection(db, "messages"), {
+        const { error } = await supabase.from("messages").insert([{
           text: textToSend,
           username: currentUsername,
-          userId: user.uid,
+          userId: user.id,
           avatar: currentUsername && currentUsername.length > 0 ? currentUsername[0].toUpperCase() : "U",
-          timestamp: serverTimestamp(),
           role: currentUserRole,
-          clientSideId: clientSideId
-        });
+          clientSideId: clientSideId,
+          isWhisper: false
+        }]);
+        if (error) throw error;
       }
     } catch (err) {
       console.error("Error sending message:", err);
@@ -1081,70 +1072,100 @@ function updateAutocompleteCacheFromLoadedMessages() {
   localUsersCache = Array.from(uniqueUsers.values());
 }
 
-function listenForNewMessages(user) {
-  const publicQ = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(20));
-  onSnapshot(publicQ, (snapshot) => {
+async function listenForNewMessages(user) {
+  // Load initial public messages
+  const { data: initialPublic } = await supabase
+    .from("messages")
+    .select("*")
+    .order("timestamp", { ascending: false })
+    .range(0, 19);
+
+  if (initialPublic) {
+    dbPublicMessages = initialPublic.map(m => ({ ...m, isWhisper: false })).reverse();
     initialSnapshotReceived = true;
-
-    if (!initialPublicSnapshotHandled) {
-      initialPublicSnapshotHandled = true;
-    } else {
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'added') {
-          maybeNotifyForMention({ ...change.doc.data(), id: change.doc.id, isWhisper: false });
-        }
-      });
-    }
-
-    dbPublicMessages = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isWhisper: false }));
-    if (!lastLoadedTimestamp && snapshot.docs.length > 0) {
-      lastLoadedTimestamp = snapshot.docs[snapshot.docs.length - 1].data().timestamp;
-    }
-    
-    if (snapshot.docs.length < 20) {
-      allMessagesLoaded = true;
-    }
+    if (initialPublic.length < 20) allMessagesLoaded = true;
+    historyPageOffset = dbPublicMessages.length;
     renderMessages();
-  });
+  }
 
-  const privateQ = query(collection(db, "whispers"), where("participants", "array-contains", user.uid));
-  onSnapshot(privateQ, (snapshot) => {
-    if (!initialPrivateSnapshotHandled) {
-      initialPrivateSnapshotHandled = true;
-    } else {
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'added') {
-          const incomingMessage = { ...change.doc.data(), id: change.doc.id, isWhisper: true };
-          maybeNotifyForMention(incomingMessage);
+  // Load initial private whispers
+  const { data: initialPrivate } = await supabase
+    .from("whispers")
+    .select("*")
+    .contains("participants", [user.id]);
 
-          if (incomingMessage.isOmoggleInvite && incomingMessage.inviteStatus === "accepted") {
-            const sessionRedirectToken = `omoggle_redirected_${change.doc.id}`;
-            const alreadyHandled = processedOmoggleRedirects.has(change.doc.id) || sessionStorage.getItem(sessionRedirectToken) === "true" || localStorage.getItem(sessionRedirectToken) === "true";
-            
-            if (!alreadyHandled) {
-              processedOmoggleRedirects.add(change.doc.id);
+  if (initialPrivate) {
+    dbPrivateMessages = initialPrivate.map(m => ({ ...m, isWhisper: true }));
+    renderMessages();
+  }
+
+  // Subscribe to public stream updates
+  if (publicChannel) publicChannel.unsubscribe();
+  publicChannel = supabase
+    .channel('public:messages')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+      const newMsg = { ...payload.new, isWhisper: false };
+      maybeNotifyForMention(newMsg);
+      dbPublicMessages.push(newMsg);
+      if (dbPublicMessages.length > 40) dbPublicMessages.shift();
+      renderMessages(true);
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
+      dbPublicMessages = dbPublicMessages.filter(m => m.id !== payload.old.id);
+      dbHistoricalMessages = dbHistoricalMessages.filter(m => m.id !== payload.old.id);
+      renderMessages();
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
+      const idx = dbPublicMessages.findIndex(m => m.id === payload.new.id);
+      if (idx !== -1) dbPublicMessages[idx] = { ...payload.new, isWhisper: false };
+      const hIdx = dbHistoricalMessages.findIndex(m => m.id === payload.new.id);
+      if (hIdx !== -1) dbHistoricalMessages[hIdx] = { ...payload.new, isWhisper: false };
+      renderMessages();
+    })
+    .subscribe();
+
+  // Subscribe to private stream whispers 
+  if (privateChannel) privateChannel.unsubscribe();
+  privateChannel = supabase
+    .channel('public:whispers')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whispers' }, payload => {
+      const newWhisper = payload.new;
+      if (newWhisper.participants && newWhisper.participants.includes(user.id)) {
+        const incomingMessage = { ...newWhisper, isWhisper: true };
+        maybeNotifyForMention(incomingMessage);
+        dbPrivateMessages.push(incomingMessage);
+        renderMessages(true);
+      }
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'whispers' }, payload => {
+      const updatedWhisper = payload.new;
+      if (updatedWhisper.participants && updatedWhisper.participants.includes(user.id)) {
+        const idx = dbPrivateMessages.findIndex(m => m.id === updatedWhisper.id);
+        if (idx !== -1) {
+          dbPrivateMessages[idx] = { ...updatedWhisper, isWhisper: true };
+          
+          if (updatedWhisper.isOmoggleInvite && updatedWhisper.inviteStatus === "accepted") {
+            const sessionRedirectToken = `omoggle_redirected_${updatedWhisper.id}`;
+            if (!processedOmoggleRedirects.has(updatedWhisper.id)) {
+              processedOmoggleRedirects.add(updatedWhisper.id);
               sessionStorage.setItem(sessionRedirectToken, "true");
-              localStorage.setItem(sessionRedirectToken, "true");
               
-              const currentAuthenticatedUid = auth.currentUser ? auth.currentUser.uid : user.uid;
-              const roleIdentityString = currentAuthenticatedUid === incomingMessage.senderId ? "host" : "guest";
-              
+              const roleIdentityString = user.id === updatedWhisper.senderId ? "host" : "guest";
               setTimeout(() => {
                 if (window.location.pathname.includes('/omoggle/')) return;
-                window.location.href = `../omoggle/?room=${change.doc.id}&role=${roleIdentityString}&hostName=${encodeURIComponent(incomingMessage.username)}`;
+                window.location.href = `../omoggle/?room=${updatedWhisper.id}&role=${roleIdentityString}&hostName=${encodeURIComponent(updatedWhisper.username)}`;
               }, 800);
             }
           }
+          renderMessages();
         }
-      });
-    }
-
-    dbPrivateMessages = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return { ...data, id: doc.id, isWhisper: true };
-    });
-    renderMessages();
-  });
+      }
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'whispers' }, payload => {
+      dbPrivateMessages = dbPrivateMessages.filter(m => m.id !== payload.old.id);
+      renderMessages();
+    })
+    .subscribe();
 }
 
 function renderMessages(forceScrollDown = false) {
@@ -1154,12 +1175,12 @@ function renderMessages(forceScrollDown = false) {
   }
 
   const scroller = document.getElementById("message-scroller");
+  if (!scroller) return;
   
   const isPinnedToBottom = scroller.scrollHeight - scroller.clientHeight <= scroller.scrollTop + 30;
   const cachedScrollTop = scroller.scrollTop;
 
   updateAutocompleteCacheFromLoadedMessages();
-
   scroller.innerHTML = "";
 
   if (allMessagesLoaded) {
@@ -1184,8 +1205,8 @@ function renderMessages(forceScrollDown = false) {
   });
 
   allMessages.sort((a, b) => {
-    const timeA = a.timestamp ? a.timestamp.toMillis() : Date.now();
-    const timeB = b.timestamp ? b.timestamp.toMillis() : Date.now();
+    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : Date.now();
+    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : Date.now();
     return timeA - timeB;
   });
 
@@ -1210,7 +1231,7 @@ function displayMessage(scroller, msgData) {
   div.className = "msg-block" + (msgData.isPending ? " pending" : "");
   if(msgData.clientSideId) div.id = msgData.clientSideId;
   
-  const time = msgData.timestamp ? new Date(msgData.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending...";
+  const time = msgData.timestamp ? new Date(msgData.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Sending...";
   
   let statusBadgeHTML = "";
   if (msgData.role === "admin") statusBadgeHTML = `<span class="badge-admin">Admin</span>`;
@@ -1229,7 +1250,7 @@ function displayMessage(scroller, msgData) {
   if (msgData.isOmoggleInvite) {
     let internalDuelPanelHTML = "";
     let inviteContextLineText = "";
-    const userIsChallengeSender = currentUser && (currentUser.uid === msgData.senderId || currentUser.uid === msgData.userId);
+    const userIsChallengeSender = currentUser && (currentUser.id === msgData.senderId || currentUser.id === msgData.userId);
 
     if (msgData.inviteStatus === "pending") {
       if (!userIsChallengeSender) {
@@ -1277,7 +1298,7 @@ function displayMessage(scroller, msgData) {
     `;
   } else {
     let staticControlsTrayHTML = "";
-    if (currentUser && (currentUser.uid === msgData.userId || currentUser.uid === msgData.senderId || currentUserRole === "admin" || currentUserRole === "owner")) {
+    if (currentUser && (currentUser.id === msgData.userId || currentUser.id === msgData.senderId || currentUserRole === "admin" || currentUserRole === "owner")) {
       staticControlsTrayHTML = `
         <div class="msg-controls-tray">
           <button class="action-control-btn btn-edit-msg" title="Modify Context">
@@ -1304,11 +1325,11 @@ function displayMessage(scroller, msgData) {
 
   div.innerHTML = layoutStructuralString;
 
-  if (msgData.isOmoggleInvite && msgData.inviteStatus === "pending" && currentUser && currentUser.uid !== msgData.senderId) {
+  if (msgData.isOmoggleInvite && msgData.inviteStatus === "pending" && currentUser && currentUser.id !== msgData.senderId) {
     const accBtn = div.querySelector(".btn-duel-accept");
     const decBtn = div.querySelector(".btn-duel-decline");
-    if (accBtn) accBtn.onclick = () => updateDoc(doc(db, "whispers", msgData.id), { inviteStatus: "accepted" });
-    if (decBtn) decBtn.onclick = () => updateDoc(doc(db, "whispers", msgData.id), { inviteStatus: "declined" });
+    if (accBtn) accBtn.onclick = () => supabase.from("whispers").update({ inviteStatus: "accepted" }).eq("id", msgData.id);
+    if (decBtn) decBtn.onclick = () => supabase.from("whispers").update({ inviteStatus: "declined" }).eq("id", msgData.id);
   }
 
   const editBtn = div.querySelector(".btn-edit-msg");
@@ -1335,12 +1356,11 @@ function displayMessage(scroller, msgData) {
   if (deleteBtn) {
     deleteBtn.onclick = async () => {
       try {
-        const targetReferenceDoc = doc(db, dataCollectionTargetStr, msgData.id);
-        const existingDataSnapshot = await getDoc(targetReferenceDoc);
-        if (existingDataSnapshot.exists()) {
-          lastActionLog = { type: "delete", collection: dataCollectionTargetStr, id: msgData.id, data: existingDataSnapshot.data() };
+        const { data: record } = await supabase.from(dataCollectionTargetStr).select("*").eq("id", msgData.id).single();
+        if (record) {
+          lastActionLog = { type: "delete", collection: dataCollectionTargetStr, id: msgData.id, data: record };
         }
-        await deleteDoc(targetReferenceDoc);
+        await supabase.from(dataCollectionTargetStr).delete().eq("id", msgData.id);
       } catch(err) {
         console.error("Failed to process document purge lifecycle steps:", err);
       }
@@ -1575,14 +1595,16 @@ function showMentions(users, type) {
 
 function closePopover() {
   const popover = document.getElementById("suggestions-popover");
-  popover.style.display = "none";
-  popover.innerHTML = "";
+  if (popover) {
+    popover.style.display = "none";
+    popover.innerHTML = "";
+  }
 }
 
 async function handleScrollPagination() {
   const scroller = document.getElementById("message-scroller");
   
-  if (scroller.scrollTop === 0 && !isLoadingMore && lastLoadedTimestamp && !allMessagesLoaded) {
+  if (scroller.scrollTop === 0 && !isLoadingMore && !allMessagesLoaded) {
     isLoadingMore = true;
 
     const loaderBanner = document.createElement("div");
@@ -1594,21 +1616,23 @@ async function handleScrollPagination() {
     const initialScrollHeight = scroller.scrollHeight;
 
     try {
-      const olderQuery = query(collection(db, "messages"), orderBy("timestamp", "desc"), startAfter(lastLoadedTimestamp), limit(20));
-      const olderSnapshot = await getDocs(olderQuery);
+      const { data: olderMessages } = await supabase
+        .from("messages")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .range(historyPageOffset, historyPageOffset + 19);
       
       const existingBanner = document.getElementById("history-loading-banner");
       if (existingBanner) existingBanner.remove();
 
-      if (olderSnapshot.docs.length < 20) {
+      if (!olderMessages || olderMessages.length < 20) {
         allMessagesLoaded = true;
       }
 
-      if (olderSnapshot.docs.length > 0) {
-        lastLoadedTimestamp = olderSnapshot.docs[olderSnapshot.docs.length - 1].data().timestamp;
-        
-        const fetchedHistorical = olderSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, isWhisper: false }));
-        dbHistoricalMessages = [...dbHistoricalMessages, ...fetchedHistorical];
+      if (olderMessages && olderMessages.length > 0) {
+        historyPageOffset += olderMessages.length;
+        const fetchedHistorical = olderMessages.map(m => ({ ...m, isWhisper: false })).reverse();
+        dbHistoricalMessages = [...fetchedHistorical, ...dbHistoricalMessages];
         
         renderMessages();
         scroller.scrollTop = scroller.scrollHeight - initialScrollHeight;
@@ -1635,7 +1659,6 @@ function escapeHtml(text) {
   const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return text.replace(/[&<>"']/g, m => map[m]);
 }
-
 </script>
 </body>
 </html>
