@@ -4,39 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings - Carson Games</title>
+  <link rel="stylesheet" href="../style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* ── BASE CORE THEME ARCHITECTURE VARIABLES ──────────────── */
-    :root {
-      --bg: #06060c;
-      --surface: #0c0d19;
-      --card: #121426;
-      --card-hover: #181b33;
-      --border: rgba(255, 255, 255, 0.06);
-      --text: #f1f5f9;
-      --text-muted: #64748b;
-      --accent: #6c63ff;
-      --radius-m: 8px;
-      --radius-l: 14px;
-      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
-      --font-display: 'Outfit', system-ui, sans-serif;
-      --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font); }
-    body { background-color: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
-
-    header { background: rgba(12, 13, 25, 0.75); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 1rem 2rem; position: sticky; top: 0; z-index: 999; }
-    .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-family: var(--font-display); font-size: 1.4rem; font-weight: 800; text-decoration: none; color: var(--text); }
-    nav ul { display: flex; list-style: none; gap: 1.5rem; align-items: center; }
-    nav a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 0.9rem; padding: 6px 12px; border-radius: var(--radius-m); transition: all 0.3s var(--ease); }
-    nav a:hover, nav a.active { color: var(--text); background: rgba(255, 255, 255, 0.04); }
-    
-    .nav-auth-btn, .btn-primary { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 999px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer; border: none; transition: all 0.3s var(--ease); }
-    .btn-primary { border-radius: var(--radius-m); }
-    .nav-auth-btn:hover, .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.1); }
-
     .settings-hero { text-align: center; padding: 4rem 2rem 2rem; }
     .settings-hero h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 800; }
     .settings-hero p { color: var(--text-muted); margin-top: 0.5rem; }
@@ -52,7 +22,7 @@
     .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(108, 99, 255, 0.15); }
     .btn-container { display: flex; justify-content: flex-end; }
 
-    /* ── STYLING FOR ROWS OF 6 BACKDROP SELECTION GRID ────── */
+    /* ── BACKGROUND GALLERY GRID (6 PER ROW) ── */
     .background-grid-wrapper {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -65,7 +35,6 @@
       flex-direction: column;
       align-items: center;
       cursor: pointer;
-      group: transition;
     }
     .thumb-canvas {
       width: 100%;
@@ -91,24 +60,73 @@
     }
     .background-thumb-card.active .thumb-label { color: #fff; }
 
+    /* ── FIREBASE-STYLE CRUD LIST MANAGER FOR ANNOUNCEMENTS ── */
+    .crud-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .crud-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-m);
+    }
+    .crud-item input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .btn-remove-item {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #ef4444;
+      font-weight: 800;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .btn-remove-item:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .add-row-box {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .add-row-box input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-m);
+      padding: 0.75rem 1rem;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .add-row-box input:focus {
+      border-color: var(--accent);
+    }
+
     .status-msg { font-size: 0.9rem; margin-top: 0.5rem; }
     .status-success { color: #4ade80; }
     .status-error { color: #f87171; }
     .logged-out-msg { text-align: center; padding: 3rem 0; }
-
-    /* ── CORE COMPLEMENTARY BACKGROUND SPECIFICATION STYLES ─ */
-    body.theme-red { --bg: #1c0505; --surface: #2d0a0a; --card: #3a1010; --accent: #ff4d4d; }
-    body.theme-orange { --bg: #1c0f05; --surface: #2d190a; --card: #3a2210; --accent: #ff944d; }
-    body.theme-yellow { --bg: #161402; --surface: #262205; --card: #332d0a; --accent: #ffdb4d; }
-    body.theme-green { --bg: #03140a; --surface: #072413; --card: #0c331c; --accent: #4dff88; }
-    body.theme-blue { --bg: #030a1c; --surface: #07132d; --card: #0c1c3a; --accent: #4da6ff; }
-    body.theme-purple { --bg: #0f031c; --surface: #19072d; --card: #220c3a; --accent: #b34dff; }
-    body.theme-stars { background-image: url('../assets/stars.png'); background-size: cover; background-attachment: fixed; }
-    body.theme-lightning { background-image: url('../assets/lightning.png'); background-size: cover; background-attachment: fixed; }
-    body.theme-teal-magenta { background-image: linear-gradient(135deg, #0d2b30 0%, #300d2b 100%); }
-    body.theme-blue-pink { background-image: url('../assets/blue+pink.png'); background-size: cover; background-attachment: fixed; }
-    body.theme-blue-spots { background-image: url('../assets/blue-spots.png'); background-size: repeat; }
-    body.theme-white-spots { background-image: url('../assets/white-spots.png'); background-size: repeat; }
 
     @media (max-width: 768px) {
       .background-grid-wrapper { grid-template-columns: repeat(3, 1fr); }
@@ -166,12 +184,12 @@
 
     const THEME_DATA_MAP = [
       { id: 'default', type: 'color', val: '#06060c', label: 'default' },
-      { id: 'red', type: 'color', val: '#2a0808', label: 'red' },
-      { id: 'orange', type: 'color', val: '#2a1408', label: 'orange' },
-      { id: 'yellow', type: 'color', val: '#221a05', label: 'yellow' },
-      { id: 'green', type: 'color', val: '#05220f', label: 'green' },
-      { id: 'blue', type: 'color', val: '#05132d', label: 'blue' },
-      { id: 'purple', type: 'color', val: '#1a052e', label: 'purple' },
+      { id: 'red', type: 'color', val: '#1c0505', label: 'red' },
+      { id: 'orange', type: 'color', val: '#1c0f05', label: 'orange' },
+      { id: 'yellow', type: 'color', val: '#161402', label: 'yellow' },
+      { id: 'green', type: 'color', val: '#03140a', label: 'green' },
+      { id: 'blue', type: 'color', val: '#030a1c', label: 'blue' },
+      { id: 'purple', type: 'color', val: '#0f031c', label: 'purple' },
       { id: 'stars', type: 'img', val: '../assets/stars.png', label: 'stars' },
       { id: 'lightning', type: 'img', val: '../assets/lightning.png', label: 'lightning' },
       { id: 'teal-magenta', type: 'gradient', val: 'linear-gradient(135deg, #0d2b30, #300d2b)', label: 'teal + magenta' },
@@ -210,10 +228,10 @@
           <div id="background-msg" class="status-msg"></div>
         </div>
 
-        <div id="owner-pannel-injection-point"></div>
+        <div id="owner-panel-injection-point"></div>
       `;
 
-      // Draw background cards
+      // Render Themes
       const thumbContainer = document.getElementById("thumb-matrix-target");
       THEME_DATA_MAP.forEach(theme => {
         const thumb = document.createElement("div");
@@ -235,65 +253,117 @@
           try {
             document.body.className = theme.id === 'default' ? '' : 'theme-' + theme.id;
             localStorage.setItem('carson_theme', theme.id);
-            
             await supabase.from("users").update({ background: theme.id }).eq("id", user.id);
-            bgMsg.textContent = "Theme settings successfully updated!";
+            bgMsg.textContent = "Theme updated!";
             bgMsg.className = "status-msg status-success";
           } catch(err) {
-            bgMsg.textContent = "Error saving theme properties.";
+            bgMsg.textContent = "Error saving theme.";
             bgMsg.className = "status-msg status-error";
           }
         };
         thumbContainer.appendChild(thumb);
       });
 
-      // Inject Owner Panel if permissions exist
+      // Render Owner CRUD Announcements Manager
       if (currentUserRole === 'owner') {
-        const ownerSection = document.getElementById("owner-pannel-injection-point");
+        const ownerSection = document.getElementById("owner-panel-injection-point");
         ownerSection.innerHTML = `
-          <form id="announcement-form" class="settings-section" style="margin-top: 1rem;">
-            <h3>Post System Announcement</h3>
-            <div class="form-group">
-              <label for="announcement-text">Announcement Headline Text</label>
-              <textarea id="announcement-text" rows="3" placeholder="e.g., Minecraft 7/22/2026" required></textarea>
+          <div class="settings-section">
+            <h3>Manage Announcements (Owner)</h3>
+            <div id="crud-announcements-list" class="crud-list">Loading announcements...</div>
+            
+            <div class="add-row-box">
+              <input type="text" id="new-announcement-input" placeholder="Type new announcement...">
+              <button id="btn-add-announcement" class="btn-primary">+ Add</button>
             </div>
-            <div class="btn-container"><button type="submit" class="btn-primary">Deploy Announcement</button></div>
             <div id="announcement-msg" class="status-msg"></div>
-          </form>
+          </div>
         `;
 
-        document.getElementById("announcement-form").onsubmit = async (e) => {
-          e.preventDefault();
-          const txtInput = document.getElementById("announcement-text");
-          const annMsg = document.getElementById("announcement-msg");
-          
+        loadOwnerAnnouncementsList();
+
+        document.getElementById("btn-add-announcement").onclick = async () => {
+          const input = document.getElementById("new-announcement-input");
+          const msgEl = document.getElementById("announcement-msg");
+          const val = input.value.trim();
+          if (!val) return;
+
           try {
-            await supabase.from("announcements").insert([{ text: txtInput.value.trim() }]);
-            annMsg.textContent = "Bulletin deployed to home page feed matrix successfully!";
-            annMsg.className = "status-msg status-success";
-            txtInput.value = "";
-          } catch(err) {
-            annMsg.textContent = "Failed to update system feed properties.";
-            annMsg.className = "status-msg status-error";
+            const { error } = await supabase.from("announcements").insert([{ text: val }]);
+            if (error) throw error;
+            input.value = "";
+            msgEl.textContent = "Announcement added!";
+            msgEl.className = "status-msg status-success";
+            loadOwnerAnnouncementsList();
+          } catch (err) {
+            msgEl.textContent = "Error adding: " + err.message;
+            msgEl.className = "status-msg status-error";
           }
         };
       }
 
-      // Username Update Binding
+      // Username Form Submission
       document.getElementById('username-form').onsubmit = async (e) => {
         e.preventDefault();
         const newUsername = document.getElementById('username').value.trim();
         const msgEl = document.getElementById('username-msg');
         try {
           await supabase.from("users").update({ username: newUsername }).eq("id", user.id);
-          msgEl.textContent = 'Username configuration synchronized!';
+          msgEl.textContent = 'Username updated!';
           msgEl.className = 'status-msg status-success';
         } catch (err) {
-          msgEl.textContent = 'Failed to execute modification.';
+          msgEl.textContent = 'Failed to update username.';
           msgEl.className = 'status-msg status-error';
         }
       };
     };
+
+    /* FETCH & RENDER ANNOUNCEMENT CRUD ITEMS */
+    async function loadOwnerAnnouncementsList() {
+      const listEl = document.getElementById("crud-announcements-list");
+      if (!listEl) return;
+
+      const { data: records, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        listEl.innerHTML = `<div style="color:#ef4444; font-size:0.9rem;">Error loading items: ${error.message}</div>`;
+        return;
+      }
+
+      if (!records || records.length === 0) {
+        listEl.innerHTML = `<div style="color:var(--text-muted); font-size:0.9rem;">No announcements created yet. Add one below!</div>`;
+        return;
+      }
+
+      listEl.innerHTML = "";
+      records.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "crud-item";
+        row.innerHTML = `
+          <input type="text" value="${escapeHtml(item.text)}" readonly>
+          <button class="btn-remove-item" title="Delete Announcement">-</button>
+        `;
+
+        row.querySelector(".btn-remove-item").onclick = async () => {
+          try {
+            await supabase.from("announcements").delete().eq("id", item.id);
+            loadOwnerAnnouncementsList();
+          } catch (err) {
+            alert("Failed to delete item: " + err.message);
+          }
+        };
+
+        listEl.appendChild(row);
+      });
+    }
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
 
     supabase.auth.onAuthStateChange((event, session) => {
       renderSettingsInterface(session?.user || null);

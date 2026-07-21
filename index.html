@@ -7,9 +7,14 @@
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* Prevent auto-scroll jumps on page load */
+    html, body {
+      scroll-behavior: auto !important;
+    }
+
     .hero {
       text-align: center;
-      padding: 6rem 2rem 0; /* Removed bottom padding so margin controls the spacing */
+      padding: 6rem 2rem 0;
       background: radial-gradient(circle at top center, rgba(108,99,255,0.08) 0%, transparent 65%);
     }
     .hero h1 {
@@ -47,14 +52,14 @@
       to { opacity: 1; transform: none; }
     }
 
-    /* ── ALIGNED RECTANGLES WITH PERFECT UNIFORM SPACING ── */
+    /* ── ALIGNED RECTANGLES ── */
     .hero-billboards {
       display: flex;
       justify-content: center;
-      gap: 2rem; /* Strict horizontal gap spacing between boxes */
-      max-width: 1200px; /* Matches the main layout grid precisely */
-      margin: 2rem auto; /* Strict 2rem vertical spacing top and bottom */
-      padding: 0 2rem; /* Aligns outer borders to the exact edges of the screen content */
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
       width: 100%;
     }
     .billboard-rect {
@@ -63,7 +68,7 @@
       border-radius: var(--radius-l);
       padding: 1.5rem 2rem;
       width: 100%;
-      height: 260px; /* Locked preset container height */
+      height: 260px;
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -75,7 +80,7 @@
       font-weight: 700;
       margin-bottom: 0.4rem;
       color: #fff;
-      text-align: center; /* Title perfectly centered in the middle top */
+      text-align: center;
       width: 100%;
     }
     .billboard-rect hr {
@@ -90,7 +95,7 @@
       width: 100%;
       overflow-y: auto;
       padding-right: 0.5rem;
-      text-align: left; /* Content inside stays left-aligned for readability */
+      text-align: left;
     }
     .billboard-scroll-area::-webkit-scrollbar { width: 4px; }
     .billboard-scroll-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
@@ -101,10 +106,10 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 2rem; /* Horizontal spacing between the buttons matches */
+      gap: 2rem;
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0 2rem 6rem; /* Top padding is 0 because billboard margin-bottom handles the gap */
+      padding: 0 2rem 6rem;
       width: 100%;
     }
     .card {
@@ -146,6 +151,13 @@
 </head>
 <body>
 
+  <script>
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  </script>
+
   <header>
     <div class="nav-container">
       <a href="" class="logo">CarsonGames</a>
@@ -185,7 +197,7 @@
       <h3>Announcements</h3>
       <hr>
       <div id="announcements-root" class="billboard-scroll-area">
-        <div style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding-top: 2rem;">Connecting to database matrix...</div>
+        <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding-top: 2rem;">Loading...</div>
       </div>
     </div>
   </section>
@@ -221,6 +233,7 @@
     const container = document.getElementById('auth-button-container');
     const heroSignInBtn = document.getElementById('hero-signin-btn');
 
+    // Fast Theme Check
     const localThemeCached = localStorage.getItem('carson_theme');
     if (localThemeCached && localThemeCached !== 'default') {
       document.body.className = 'theme-' + localThemeCached;
@@ -266,18 +279,23 @@
       }
     };
 
-    /* FETCH REAL-TIME BACKEND ANNOUNCEMENTS ENGINE */
-    const renderLiveAnnouncements = async () => {
+        /* FETCH REAL BACKEND ANNOUNCEMENTS */
+    const loadAnnouncements = async () => {
       const targetFeed = document.getElementById("announcements-root");
       if (!targetFeed) return;
-      
+  
       const { data: records, error } = await supabase
         .from("announcements")
         .select("*")
         .order("created_at", { ascending: false });
 
+      // Fallback if there is a database error or if no announcements exist
       if (error || !records || records.length === 0) {
-        targetFeed.innerHTML = `<ul><li>Minecraft 7/22/2026</li></ul>`;
+        if (error) console.error("Announcements DB Error:", error);
+        targetFeed.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 0.95rem; text-align: center; font-weight: 600;">
+            Could not load announcements
+          </div>`;
         return;
       }
 
@@ -291,11 +309,29 @@
       targetFeed.appendChild(ul);
     };
 
+      targetFeed.innerHTML = "";
+      const ul = document.createElement("ul");
+      records.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item.text;
+        ul.appendChild(li);
+      });
+      targetFeed.appendChild(ul);
+    };
+
+    // Live Realtime Listener
+    supabase
+      .channel('public:announcements')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
+        loadAnnouncements();
+      })
+      .subscribe();
+
     supabase.auth.onAuthStateChange((event, session) => {
       renderAuthState(session?.user || null);
     });
 
-    renderLiveAnnouncements();
+    loadAnnouncements();
   </script>
 </body>
 </html>
