@@ -20,7 +20,7 @@
     .form-group label { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; }
     .form-group input, .form-group textarea { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 0.75rem 1rem; color: #fff; font-size: 1rem; outline: none; transition: all 0.3s var(--ease); }
     .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(108, 99, 255, 0.15); }
-    .btn-container { display: flex; justify-content: flex-end; }
+    .btn-container { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
 
     /* ── BACKGROUND GALLERY GRID (6 PER ROW) ── */
     .background-grid-wrapper {
@@ -60,67 +60,68 @@
     }
     .background-thumb-card.active .thumb-label { color: #fff; }
 
-    /* ── FIREBASE-STYLE CRUD LIST MANAGER FOR ANNOUNCEMENTS ── */
-    .crud-list {
+    /* ── HEADER ROW WITH TOP-RIGHT PLUS / MINUS CONTROLS ── */
+    .section-header-controls {
       display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .crud-item {
-      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 0.75rem;
-      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .section-header-controls h3 {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .pm-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .btn-pm {
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border);
-      padding: 0.75rem 1rem;
-      border-radius: var(--radius-m);
-    }
-    .crud-item input {
-      flex: 1;
-      background: transparent;
-      border: none;
       color: #fff;
-      font-size: 0.95rem;
-      outline: none;
-    }
-    .btn-remove-item {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #ef4444;
       font-weight: 800;
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-m);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.2rem;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
+      transition: all 0.2s var(--ease);
+      user-select: none;
     }
-    .btn-remove-item:hover {
+    .btn-pm:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .btn-pm-minus:hover {
       background: #ef4444;
-      color: #fff;
+      border-color: #ef4444;
     }
 
-    .add-row-box {
+    /* ── STACKED EDITABLE ANNOUNCEMENT BOXES ── */
+    .announcements-box-stack {
       display: flex;
+      flex-direction: column;
       gap: 0.75rem;
       margin-top: 0.5rem;
     }
-    .add-row-box input {
-      flex: 1;
+    .announcement-input-field {
+      width: 100%;
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border);
       border-radius: var(--radius-m);
       padding: 0.75rem 1rem;
       color: #fff;
-      font-size: 0.95rem;
+      font-size: 1rem;
       outline: none;
+      transition: all 0.3s var(--ease);
     }
-    .add-row-box input:focus {
+    .announcement-input-field:focus {
       border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(108, 99, 255, 0.15);
     }
 
     .status-msg { font-size: 0.9rem; margin-top: 0.5rem; }
@@ -231,7 +232,7 @@
         <div id="owner-panel-injection-point"></div>
       `;
 
-      // Render Themes
+      // Render Background Theme Selector
       const thumbContainer = document.getElementById("thumb-matrix-target");
       THEME_DATA_MAP.forEach(theme => {
         const thumb = document.createElement("div");
@@ -264,39 +265,83 @@
         thumbContainer.appendChild(thumb);
       });
 
-      // Render Owner CRUD Announcements Manager
+      // Render Owner Controls if role is 'owner'
       if (currentUserRole === 'owner') {
         const ownerSection = document.getElementById("owner-panel-injection-point");
         ownerSection.innerHTML = `
           <div class="settings-section">
-            <h3>Manage Announcements (Owner)</h3>
-            <div id="crud-announcements-list" class="crud-list">Loading announcements...</div>
+            <div class="section-header-controls">
+              <h3>Manage Announcements</h3>
+              <div class="pm-controls">
+                <button type="button" id="btn-add-box" class="btn-pm" title="Add text box underneath">+</button>
+                <button type="button" id="btn-remove-box" class="btn-pm btn-pm-minus" title="Remove bottom text box">-</button>
+              </div>
+            </div>
             
-            <div class="add-row-box">
-              <input type="text" id="new-announcement-input" placeholder="Type new announcement...">
-              <button id="btn-add-announcement" class="btn-primary">+ Add</button>
+            <div id="announcements-stack" class="announcements-box-stack">
+              <div style="color:var(--text-muted); font-size:0.9rem;">Loading announcements...</div>
+            </div>
+
+            <div class="btn-container">
+              <button type="button" id="btn-save-announcements" class="btn-primary">Save Changes</button>
             </div>
             <div id="announcement-msg" class="status-msg"></div>
           </div>
         `;
 
-        loadOwnerAnnouncementsList();
+        await loadAndPopulateAnnouncements();
 
-        document.getElementById("btn-add-announcement").onclick = async () => {
-          const input = document.getElementById("new-announcement-input");
+        // Plus (+) Button Handler: Adds a new empty text box at the bottom
+        document.getElementById("btn-add-box").onclick = () => {
+          const stack = document.getElementById("announcements-stack");
+          const newInput = document.createElement("input");
+          newInput.type = "text";
+          newInput.className = "announcement-input-field";
+          newInput.placeholder = "Type announcement text...";
+          stack.appendChild(newInput);
+          newInput.focus();
+        };
+
+        // Minus (-) Button Handler: Removes the bottom-most text box
+        document.getElementById("btn-remove-box").onclick = () => {
+          const stack = document.getElementById("announcements-stack");
+          const inputs = stack.querySelectorAll(".announcement-input-field");
+          if (inputs.length > 0) {
+            inputs[inputs.length - 1].remove();
+          }
+        };
+
+        // Save Button Handler: Replaces everything in the database with current text box contents
+        document.getElementById("btn-save-announcements").onclick = async () => {
           const msgEl = document.getElementById("announcement-msg");
-          const val = input.value.trim();
-          if (!val) return;
+          const stack = document.getElementById("announcements-stack");
+          const inputs = stack.querySelectorAll(".announcement-input-field");
+
+          const updatedTexts = Array.from(inputs)
+            .map(i => i.value.trim())
+            .filter(text => text.length > 0);
 
           try {
-            const { error } = await supabase.from("announcements").insert([{ text: val }]);
-            if (error) throw error;
-            input.value = "";
-            msgEl.textContent = "Announcement added!";
+            msgEl.textContent = "Saving changes...";
+            msgEl.className = "status-msg";
+
+            // Delete all current records to replace
+            const { error: deleteError } = await supabase.from("announcements").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+            if (deleteError) throw deleteError;
+
+            // Re-insert current items if any exist
+            if (updatedTexts.length > 0) {
+              const rowsToInsert = updatedTexts.map(text => ({ text }));
+              const { error: insertError } = await supabase.from("announcements").insert(rowsToInsert);
+              if (insertError) throw insertError;
+            }
+
+            msgEl.textContent = "Announcements updated successfully!";
             msgEl.className = "status-msg status-success";
-            loadOwnerAnnouncementsList();
+            await loadAndPopulateAnnouncements();
           } catch (err) {
-            msgEl.textContent = "Error adding: " + err.message;
+            console.error("Save announcements error:", err);
+            msgEl.textContent = "Failed to save: " + err.message;
             msgEl.className = "status-msg status-error";
           }
         };
@@ -318,51 +363,41 @@
       };
     };
 
-    /* FETCH & RENDER ANNOUNCEMENT CRUD ITEMS */
-    async function loadOwnerAnnouncementsList() {
-      const listEl = document.getElementById("crud-announcements-list");
-      if (!listEl) return;
+    /* FETCH ANNOUNCEMENTS FROM DATABASE & POPULATE INPUT FIELDS */
+    async function loadAndPopulateAnnouncements() {
+      const stack = document.getElementById("announcements-stack");
+      if (!stack) return;
 
       const { data: records, error } = await supabase
         .from("announcements")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true }); // Oldest first so ordering is natural
+
+      stack.innerHTML = "";
 
       if (error) {
-        listEl.innerHTML = `<div style="color:#ef4444; font-size:0.9rem;">Error loading items: ${error.message}</div>`;
+        stack.innerHTML = `<div style="color:#ef4444; font-size:0.9rem;">Error loading entries: ${error.message}</div>`;
         return;
       }
 
       if (!records || records.length === 0) {
-        listEl.innerHTML = `<div style="color:var(--text-muted); font-size:0.9rem;">No announcements created yet. Add one below!</div>`;
+        // Create 1 initial empty box if database is empty
+        const defaultInput = document.createElement("input");
+        defaultInput.type = "text";
+        defaultInput.className = "announcement-input-field";
+        defaultInput.placeholder = "Type announcement text...";
+        stack.appendChild(defaultInput);
         return;
       }
 
-      listEl.innerHTML = "";
+      // Create an editable text input pre-filled with current database value
       records.forEach(item => {
-        const row = document.createElement("div");
-        row.className = "crud-item";
-        row.innerHTML = `
-          <input type="text" value="${escapeHtml(item.text)}" readonly>
-          <button class="btn-remove-item" title="Delete Announcement">-</button>
-        `;
-
-        row.querySelector(".btn-remove-item").onclick = async () => {
-          try {
-            await supabase.from("announcements").delete().eq("id", item.id);
-            loadOwnerAnnouncementsList();
-          } catch (err) {
-            alert("Failed to delete item: " + err.message);
-          }
-        };
-
-        listEl.appendChild(row);
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "announcement-input-field";
+        input.value = item.text;
+        stack.appendChild(input);
       });
-    }
-
-    function escapeHtml(text) {
-      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-      return text.replace(/[&<>"']/g, m => map[m]);
     }
 
     supabase.auth.onAuthStateChange((event, session) => {
