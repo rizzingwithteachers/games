@@ -3,222 +3,167 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Carson Games</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Settings - Carson Games</title>
+  <link rel="stylesheet" href="../style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Prevent auto-scroll jumps on page load */
-    html, body {
-      scroll-behavior: auto !important;
-    }
+    .settings-hero { text-align: center; padding: 4rem 2rem 2rem; }
+    .settings-hero h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 800; }
+    .settings-hero p { color: var(--text-muted); margin-top: 0.5rem; }
 
-    .hero {
-      text-align: center;
-      padding: 6rem 2rem 0;
-      background: radial-gradient(circle at top center, rgba(108,99,255,0.08) 0%, transparent 65%);
-    }
-    .hero h1 {
-      font-family: var(--font-display);
-      font-size: 3.5rem;
-      font-weight: 800;
-      line-height: 1.1;
-      margin-bottom: 1rem;
-      animation: textGlow 3s ease-in-out infinite;
-    }
-    @keyframes textGlow {
-      0%, 100% { text-shadow: 0 0 20px rgba(108, 99, 255, 0.2); }
-      50% { text-shadow: 0 0 40px rgba(108, 99, 255, 0.4); }
-    }
-    .hero h1 span {
-      background: linear-gradient(135deg, #a5b4fc 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-size: 200% 200%;
-      animation: gradientShift 4s ease infinite;
-    }
-    @keyframes gradientShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-    .hero p {
-      color: var(--text-muted);
-      max-width: 580px;
-      margin: 0 auto 2rem;
-      font-size: 1.1rem;
-      animation: fadeInUp 0.8s ease-out 0.3s both;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: none; }
-    }
+    .settings-container { max-width: 800px; margin: 0 auto; padding: 0 2rem 6rem; width: 100%; }
+    .settings-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 2.5rem 2rem; display: flex; flex-direction: column; gap: 2.5rem; }
+    .settings-section { display: flex; flex-direction: column; gap: 1.25rem; }
+    .settings-section h3 { font-family: var(--font-display); font-size: 1.4rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; color: #fff; }
+    
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    .form-group label { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; }
+    .form-group input, .form-group textarea { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 0.75rem 1rem; color: #fff; font-size: 1rem; outline: none; transition: all 0.3s var(--ease); }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(108, 99, 255, 0.15); }
+    .btn-container { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
 
-    /* ── ALIGNED RECTANGLES ── */
-    .hero-billboards {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      max-width: 1200px;
-      margin: 2rem auto;
-      padding: 0 2rem;
-      width: 100%;
-    }
-    .billboard-rect {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-l);
-      padding: 1.5rem 2rem;
-      width: 100%;
-      height: 260px;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      overflow: hidden;
-    }
-    .billboard-rect h3 {
-      font-family: var(--font-display);
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 0.4rem;
-      color: #fff;
-      text-align: center;
-      width: 100%;
-    }
-    .billboard-rect hr {
-      width: 100%;
-      border: 0;
-      height: 1px;
-      background: var(--border);
-      margin-bottom: 1rem;
-    }
-    .billboard-scroll-area {
-      flex: 1;
-      width: 100%;
-      overflow-y: auto;
-      padding-right: 0.5rem;
-      text-align: left;
-    }
-    .billboard-scroll-area::-webkit-scrollbar { width: 4px; }
-    .billboard-scroll-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-    .billboard-scroll-area ul { list-style: none; }
-    .billboard-scroll-area li { color: #cbd5e1; font-size: 0.95rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-    .billboard-scroll-area li::before { content: ">"; color: var(--text-muted); font-weight: bold; }
-
-    .grid {
+    /* ── BACKGROUND GALLERY GRID (6 PER ROW) ── */
+    .background-grid-wrapper {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 2rem 6rem;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1rem;
       width: 100%;
+      margin-top: 0.5rem;
     }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-l);
-      padding: 2.5rem 2rem;
-      transition: all 0.35s var(--ease);
+    .background-thumb-card {
       display: flex;
       flex-direction: column;
       align-items: center;
-      position: relative;
-      overflow: hidden;
+      cursor: pointer;
     }
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(108, 99, 255, 0.1) 0%, transparent 60%);
-      opacity: 0;
-      transition: opacity 0.35s var(--ease);
-      pointer-events: none;
+    .thumb-canvas {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: var(--radius-m);
+      border: 2px solid var(--border);
+      background-size: cover;
+      background-position: center;
+      transition: all 0.25s var(--ease);
     }
-    .card:hover {
-      transform: translateY(-8px) scale(1.02);
-      border-color: rgba(108, 99, 255, 0.5);
-      background: var(--card-hover);
-      box-shadow: 0 24px 48px rgba(108, 99, 255, 0.2), 0 0 40px rgba(108, 99, 255, 0.1);
+    .background-thumb-card:hover .thumb-canvas, .background-thumb-card.active .thumb-canvas {
+      border-color: var(--accent);
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(108, 99, 255, 0.3);
     }
-    .card:hover::before { opacity: 1; }
-    .card h3 { font-family: var(--font-display); font-size: 1.4rem; margin-bottom: 0.75rem; text-align: center; }
-    .card p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 2rem; text-align: center; }
-    .card .btn-primary { margin-top: auto; justify-content: center; align-self: center; }
+    .thumb-label {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: center;
+      text-transform: capitalize;
+    }
+    .background-thumb-card.active .thumb-label { color: #fff; }
+
+    /* ── HEADER ROW WITH TOP-RIGHT PLUS / MINUS CONTROLS ── */
+    .section-header-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .section-header-controls h3 {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .pm-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .btn-pm {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-weight: 800;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-m);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: all 0.2s var(--ease);
+      user-select: none;
+    }
+    .btn-pm:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .btn-pm-minus:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+    }
+
+    /* ── STACKED EDITABLE ANNOUNCEMENT BOXES ── */
+    .announcements-box-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .announcement-input-field {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-m);
+      padding: 0.75rem 1rem;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.3s var(--ease);
+    }
+    .announcement-input-field:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(108, 99, 255, 0.15);
+    }
+
+    .status-msg { font-size: 0.9rem; margin-top: 0.5rem; }
+    .status-success { color: #4ade80; }
+    .status-error { color: #f87171; }
+    .logged-out-msg { text-align: center; padding: 3rem 0; }
 
     @media (max-width: 768px) {
-      .hero-billboards { flex-direction: column; gap: 2rem; }
+      .background-grid-wrapper { grid-template-columns: repeat(3, 1fr); }
     }
   </style>
 </head>
 <body>
 
-  <script>
-    if ('scrollRestoration' in history) {
-      history.scrollRestoration = 'manual';
-    }
-    window.scrollTo(0, 0);
-  </script>
-
   <header>
     <div class="nav-container">
-      <a href="" class="logo">CarsonGames</a>
+      <a href="../" class="logo">CarsonGames</a>
       <nav>
         <ul>
-          <li><a href="#" class="active">Home</a></li>
-          <li><a href="games/">Games</a></li>
-          <li><a href="omoggle/">Omoggle</a></li>
-          <li><a href="chat/">Chat</a></li>
-          <li><a href="settings/">Settings</a></li>
+          <li><a href="../">Home</a></li>
+          <li><a href="../games/">Games</a></li>
+          <li><a href="../omoggle/">Omoggle</a></li>
+          <li><a href="../chat/">Chat</a></li>
+          <li><a href="#" class="active">Settings</a></li>
           <li id="auth-button-container"></li>
         </ul>
       </nav>
     </div>
   </header>
 
-  <section class="hero">
-    <a href="" class="logobig">CarsonGames</a>
-    <p>New website, new games!</p>
-    <a id="hero-signin-btn" href="login/" class="btn-primary">Sign In</a>
+  <section class="settings-hero">
+    <h1>Account Settings</h1>
+    <p>Change your configuration and interface options</p>
   </section>
 
-  <section class="hero-billboards">
-    <div class="billboard-rect">
-      <h3>Update 1.1</h3>
-      <hr>
-      <div class="billboard-scroll-area">
-        <ul>
-          <li>created</li>
-          <li>new chat</li>
-          <li>accounts</li>
-        </ul>
+  <main class="settings-container">
+    <div id="settings-wrapper" class="settings-card">
+      <div class="logged-out-msg">
+        <p>Please sign in to view and change your settings.</p>
+        <br>
+        <a href="../login/" class="btn-primary">Sign In</a>
       </div>
-    </div>
-
-    <div class="billboard-rect">
-      <h3>Announcements</h3>
-      <hr>
-      <div id="announcements-root" class="billboard-scroll-area">
-        <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding-top: 2rem;">Loading...</div>
-      </div>
-    </div>
-  </section>
-
-  <main class="grid">
-    <div class="card">
-      <h3>Games</h3>
-      <p> </p>
-      <a href="games/" class="btn-primary">Open Games</a>
-    </div>
-
-    <div class="card">
-      <h3>Omoggle</h3>
-      <p> </p>
-      <a href="omoggle/" class="btn-primary">Open Omoggle</a>
-    </div>
-
-    <div class="card">
-      <h3>Chat</h3>
-      <p> </p>
-      <a href="chat/" class="btn-primary">Open Chat</a>
     </div>
   </main>
 
@@ -230,108 +175,234 @@
     const supabaseKey = "sb_publishable_WnnU16Mfj1rmRJcEStOzeQ_BExLbP2C";
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const container = document.getElementById('auth-button-container');
-    const heroSignInBtn = document.getElementById('hero-signin-btn');
+    const settingsWrapper = document.getElementById('settings-wrapper');
+    const navAuthContainer = document.getElementById('auth-button-container');
 
-    // Fast Theme Check
     const localThemeCached = localStorage.getItem('carson_theme');
     if (localThemeCached && localThemeCached !== 'default') {
       document.body.className = 'theme-' + localThemeCached;
     }
 
-    if (container) {
-      container.innerHTML = '';
-      container.style.display = 'none';
-    }
-    if (heroSignInBtn) heroSignInBtn.style.display = 'none';
+    const THEME_DATA_MAP = [
+      { id: 'default', type: 'color', val: '#06060c', label: 'default' },
+      { id: 'red', type: 'color', val: '#1c0505', label: 'red' },
+      { id: 'orange', type: 'color', val: '#1c0f05', label: 'orange' },
+      { id: 'yellow', type: 'color', val: '#161402', label: 'yellow' },
+      { id: 'green', type: 'color', val: '#03140a', label: 'green' },
+      { id: 'blue', type: 'color', val: '#030a1c', label: 'blue' },
+      { id: 'purple', type: 'color', val: '#0f031c', label: 'purple' },
+      { id: 'stars', type: 'img', val: '../assets/stars.png', label: 'stars' },
+      { id: 'lightning', type: 'img', val: '../assets/lightning.png', label: 'lightning' },
+      { id: 'teal-magenta', type: 'gradient', val: 'linear-gradient(135deg, #0d2b30, #300d2b)', label: 'teal + magenta' },
+      { id: 'blue-pink', type: 'img', val: '../assets/blue+pink.png', label: 'blue + pink' },
+      { id: 'blue-spots', type: 'img', val: '../assets/blue-spots.png', label: 'blue spots' },
+      { id: 'white-spots', type: 'img', val: '../assets/white-spots.png', label: 'white spots' }
+    ];
 
-    const renderAuthState = async (user) => {
-      if (!container) return;
+    const renderSettingsInterface = async (user) => {
+      if (!user) return;
 
-      if (user) {
-        container.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
-        container.style.display = '';
-        if (heroSignInBtn) heroSignInBtn.style.display = 'none';
+      navAuthContainer.innerHTML = '<a id="logout-btn" href="#" class="nav-auth-btn">Logout</a>';
+      navAuthContainer.style.display = '';
+      
+      const { data: profile } = await supabase.from("users").select("*").eq("id", user.id).single();
+      const currentBgSetting = (profile && profile.background) ? profile.background : 'default';
+      const currentUserRole = (profile && profile.role) ? profile.role : 'user';
 
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-          logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            try {
-              await supabase.auth.signOut();
-              localStorage.removeItem('carson_theme');
-              window.location.reload();
-            } catch (err) {
-              console.error('Logout error:', err);
+      localStorage.setItem('carson_theme', currentBgSetting);
+      document.body.className = currentBgSetting === 'default' ? '' : 'theme-' + currentBgSetting;
+
+      settingsWrapper.innerHTML = `
+        <form id="username-form" class="settings-section">
+          <h3>Change Username</h3>
+          <div class="form-group">
+            <label for="username">New Username</label>
+            <input type="text" id="username" value="${profile?.username || ''}" required>
+          </div>
+          <div class="btn-container"><button type="submit" class="btn-primary">Update Username</button></div>
+          <div id="username-msg" class="status-msg"></div>
+        </form>
+
+        <div class="settings-section">
+          <h3>Background Gallery</h3>
+          <div class="background-grid-wrapper" id="thumb-matrix-target"></div>
+          <div id="background-msg" class="status-msg"></div>
+        </div>
+
+        <div id="owner-panel-injection-point"></div>
+      `;
+
+      // Render Background Theme Selector
+      const thumbContainer = document.getElementById("thumb-matrix-target");
+      THEME_DATA_MAP.forEach(theme => {
+        const thumb = document.createElement("div");
+        thumb.className = `background-thumb-card ${currentBgSetting === theme.id ? 'active' : ''}`;
+        thumb.dataset.id = theme.id;
+
+        let canvasStyle = "";
+        if (theme.type === 'color') canvasStyle = `background-color: ${theme.val};`;
+        if (theme.type === 'gradient') canvasStyle = `background: ${theme.val};`;
+        if (theme.type === 'img') canvasStyle = `background-image: url('${theme.val}');`;
+
+        thumb.innerHTML = `<div class="thumb-canvas" style="${canvasStyle}"></div><div class="thumb-label">${theme.label}</div>`;
+        
+        thumb.onclick = async () => {
+          document.querySelectorAll('.background-thumb-card').forEach(c => c.classList.remove('active'));
+          thumb.classList.add('active');
+          const bgMsg = document.getElementById("background-msg");
+
+          try {
+            document.body.className = theme.id === 'default' ? '' : 'theme-' + theme.id;
+            localStorage.setItem('carson_theme', theme.id);
+            await supabase.from("users").update({ background: theme.id }).eq("id", user.id);
+            bgMsg.textContent = "Theme updated!";
+            bgMsg.className = "status-msg status-success";
+          } catch(err) {
+            bgMsg.textContent = "Error saving theme.";
+            bgMsg.className = "status-msg status-error";
+          }
+        };
+        thumbContainer.appendChild(thumb);
+      });
+
+      // Render Owner Controls if role is 'owner'
+      if (currentUserRole === 'owner') {
+        const ownerSection = document.getElementById("owner-panel-injection-point");
+        ownerSection.innerHTML = `
+          <div class="settings-section">
+            <div class="section-header-controls">
+              <h3>Manage Announcements</h3>
+              <div class="pm-controls">
+                <button type="button" id="btn-add-box" class="btn-pm" title="Add text box underneath">+</button>
+                <button type="button" id="btn-remove-box" class="btn-pm btn-pm-minus" title="Remove bottom text box">-</button>
+              </div>
+            </div>
+            
+            <div id="announcements-stack" class="announcements-box-stack">
+              <div style="color:var(--text-muted); font-size:0.9rem;">Loading announcements...</div>
+            </div>
+
+            <div class="btn-container">
+              <button type="button" id="btn-save-announcements" class="btn-primary">Save Changes</button>
+            </div>
+            <div id="announcement-msg" class="status-msg"></div>
+          </div>
+        `;
+
+        await loadAndPopulateAnnouncements();
+
+        // Plus (+) Button Handler: Adds a new empty text box at the bottom
+        document.getElementById("btn-add-box").onclick = () => {
+          const stack = document.getElementById("announcements-stack");
+          const newInput = document.createElement("input");
+          newInput.type = "text";
+          newInput.className = "announcement-input-field";
+          newInput.placeholder = "Type announcement text...";
+          stack.appendChild(newInput);
+          newInput.focus();
+        };
+
+        // Minus (-) Button Handler: Removes the bottom-most text box
+        document.getElementById("btn-remove-box").onclick = () => {
+          const stack = document.getElementById("announcements-stack");
+          const inputs = stack.querySelectorAll(".announcement-input-field");
+          if (inputs.length > 0) {
+            inputs[inputs.length - 1].remove();
+          }
+        };
+
+        // Save Button Handler: Replaces everything in the database with current text box contents
+        document.getElementById("btn-save-announcements").onclick = async () => {
+          const msgEl = document.getElementById("announcement-msg");
+          const stack = document.getElementById("announcements-stack");
+          const inputs = stack.querySelectorAll(".announcement-input-field");
+
+          const updatedTexts = Array.from(inputs)
+            .map(i => i.value.trim())
+            .filter(text => text.length > 0);
+
+          try {
+            msgEl.textContent = "Saving changes...";
+            msgEl.className = "status-msg";
+
+            // Delete all current records to replace
+            const { error: deleteError } = await supabase.from("announcements").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+            if (deleteError) throw deleteError;
+
+            // Re-insert current items if any exist
+            if (updatedTexts.length > 0) {
+              const rowsToInsert = updatedTexts.map(text => ({ text }));
+              const { error: insertError } = await supabase.from("announcements").insert(rowsToInsert);
+              if (insertError) throw insertError;
             }
-          });
-        }
 
-        const { data: profile } = await supabase.from("users").select("background").eq("id", user.id).single();
-        if (profile && profile.background) {
-          localStorage.setItem('carson_theme', profile.background);
-          document.body.className = profile.background === 'default' ? '' : 'theme-' + profile.background;
-        }
-      } else {
-        container.innerHTML = '<a href="login/" class="nav-auth-btn">Sign In</a>';
-        container.style.display = '';
-        if (heroSignInBtn) heroSignInBtn.style.display = '';
+            msgEl.textContent = "Announcements updated successfully!";
+            msgEl.className = "status-msg status-success";
+            await loadAndPopulateAnnouncements();
+          } catch (err) {
+            console.error("Save announcements error:", err);
+            msgEl.textContent = "Failed to save: " + err.message;
+            msgEl.className = "status-msg status-error";
+          }
+        };
       }
+
+      // Username Form Submission
+      document.getElementById('username-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const newUsername = document.getElementById('username').value.trim();
+        const msgEl = document.getElementById('username-msg');
+        try {
+          await supabase.from("users").update({ username: newUsername }).eq("id", user.id);
+          msgEl.textContent = 'Username updated!';
+          msgEl.className = 'status-msg status-success';
+        } catch (err) {
+          msgEl.textContent = 'Failed to update username.';
+          msgEl.className = 'status-msg status-error';
+        }
+      };
     };
 
-        /* FETCH REAL BACKEND ANNOUNCEMENTS */
-    const loadAnnouncements = async () => {
-      const targetFeed = document.getElementById("announcements-root");
-      if (!targetFeed) return;
-  
+    /* FETCH ANNOUNCEMENTS FROM DATABASE & POPULATE INPUT FIELDS */
+    async function loadAndPopulateAnnouncements() {
+      const stack = document.getElementById("announcements-stack");
+      if (!stack) return;
+
       const { data: records, error } = await supabase
         .from("announcements")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true }); // Oldest first so ordering is natural
 
-      // Fallback if there is a database error or if no announcements exist
-      if (error || !records || records.length === 0) {
-        if (error) console.error("Announcements DB Error:", error);
-        targetFeed.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 0.95rem; text-align: center; font-weight: 600;">
-            Could not load announcements
-          </div>`;
+      stack.innerHTML = "";
+
+      if (error) {
+        stack.innerHTML = `<div style="color:#ef4444; font-size:0.9rem;">Error loading entries: ${error.message}</div>`;
         return;
       }
 
-      targetFeed.innerHTML = "";
-      const ul = document.createElement("ul");
-      records.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = item.text;
-        ul.appendChild(li);
-      });
-      targetFeed.appendChild(ul);
-    };
+      if (!records || records.length === 0) {
+        // Create 1 initial empty box if database is empty
+        const defaultInput = document.createElement("input");
+        defaultInput.type = "text";
+        defaultInput.className = "announcement-input-field";
+        defaultInput.placeholder = "Type announcement text...";
+        stack.appendChild(defaultInput);
+        return;
+      }
 
-      targetFeed.innerHTML = "";
-      const ul = document.createElement("ul");
+      // Create an editable text input pre-filled with current database value
       records.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = item.text;
-        ul.appendChild(li);
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "announcement-input-field";
+        input.value = item.text;
+        stack.appendChild(input);
       });
-      targetFeed.appendChild(ul);
-    };
-
-    // Live Realtime Listener
-    supabase
-      .channel('public:announcements')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => {
-        loadAnnouncements();
-      })
-      .subscribe();
+    }
 
     supabase.auth.onAuthStateChange((event, session) => {
-      renderAuthState(session?.user || null);
+      renderSettingsInterface(session?.user || null);
     });
-
-    loadAnnouncements();
   </script>
 </body>
 </html>
