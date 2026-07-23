@@ -31,7 +31,7 @@
     }
     .player-slot { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-m); aspect-ratio: 4/3; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden; }
     .player-slot.winning { border-color: var(--accent); }
-    .player-slot video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 1; background: #000; }
+    .player-slot video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 1; background: var(--surface); }
     .player-label { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.6); padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; z-index: 2; }
     .player-label.opponent { left: auto; right: 12px; }
     .live-metrics { margin-top: auto; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; margin-bottom: 12px; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--text-muted); z-index: 2; position: relative; }

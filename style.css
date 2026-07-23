@@ -16,6 +16,7 @@
   --font: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-display: 'Outfit', system-ui, sans-serif;
   --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --theme-bg-image: none;
 }
 
 /* ── BASE RESET ───────────────────────────────────────── */
@@ -27,7 +28,7 @@
 }
 
 body {
-  background-color: var(--bg);
+  background: radial-gradient(circle at top, rgba(108, 99, 255, 0.08), transparent 55%), var(--bg);
   color: var(--text);
   min-height: 100vh;
   display: flex;
@@ -41,9 +42,168 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
+  background-image: var(--theme-bg-image), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
+  background-position: center, center;
+  background-repeat: no-repeat, repeat;
+  background-size: cover, 180px 180px;
   pointer-events: none;
   z-index: 1000;
+}
+
+html.theme-red, body.theme-red {
+  --bg: #120407;
+  --surface: #1a0b10;
+  --card: #210e15;
+  --card-hover: #29131a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(248, 113, 113, 0.42);
+  --text-muted: #d7a9ad;
+  --accent: #fb7185;
+  --accent-glow: rgba(251, 113, 133, 0.22);
+  --theme-bg-image: radial-gradient(circle at top, rgba(251, 113, 133, 0.16), transparent 50%), radial-gradient(circle at 85% 18%, rgba(248, 113, 113, 0.12), transparent 34%);
+}
+
+html.theme-orange, body.theme-orange {
+  --bg: #140801;
+  --surface: #1d1108;
+  --card: #24150b;
+  --card-hover: #2f1b0e;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(251, 146, 60, 0.42);
+  --text-muted: #d7b28f;
+  --accent: #fb923c;
+  --accent-glow: rgba(251, 146, 60, 0.22);
+  --theme-bg-image: radial-gradient(circle at top, rgba(251, 146, 60, 0.16), transparent 50%), radial-gradient(circle at 78% 16%, rgba(251, 176, 64, 0.12), transparent 30%);
+}
+
+html.theme-yellow, body.theme-yellow {
+  --bg: #121004;
+  --surface: #1a1708;
+  --card: #221d0c;
+  --card-hover: #2b2510;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(234, 179, 8, 0.42);
+  --text-muted: #d9cd95;
+  --accent: #eab308;
+  --accent-glow: rgba(234, 179, 8, 0.22);
+  --theme-bg-image: radial-gradient(circle at top, rgba(234, 179, 8, 0.16), transparent 50%), radial-gradient(circle at 82% 22%, rgba(250, 204, 21, 0.1), transparent 30%);
+}
+
+html.theme-green, body.theme-green {
+  --bg: #061108;
+  --surface: #0d1a10;
+  --card: #112016;
+  --card-hover: #15271b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(34, 197, 94, 0.42);
+  --text-muted: #a8d1b3;
+  --accent: #22c55e;
+  --accent-glow: rgba(34, 197, 94, 0.22);
+  --theme-bg-image: radial-gradient(circle at top, rgba(34, 197, 94, 0.14), transparent 50%), radial-gradient(circle at 82% 22%, rgba(16, 185, 129, 0.1), transparent 34%);
+}
+
+html.theme-blue, body.theme-blue {
+  --bg: #050b16;
+  --surface: #0a1324;
+  --card: #0e1a31;
+  --card-hover: #12203d;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(59, 130, 246, 0.42);
+  --text-muted: #9fb7d6;
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.22);
+  --theme-bg-image: radial-gradient(circle at top, rgba(59, 130, 246, 0.14), transparent 52%), radial-gradient(circle at 82% 18%, rgba(56, 189, 248, 0.1), transparent 34%);
+}
+
+html.theme-purple, body.theme-purple {
+  --bg: #100616;
+  --surface: #170b21;
+  --card: #1f102d;
+  --card-hover: #281338;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(168, 85, 247, 0.42);
+  --text-muted: #ceb2dd;
+  --accent: #c084fc;
+  --accent-glow: rgba(192, 132, 252, 0.22);
+  --theme-bg-image: radial-gradient(circle at top, rgba(168, 85, 247, 0.15), transparent 52%), radial-gradient(circle at 84% 18%, rgba(236, 72, 153, 0.08), transparent 30%);
+}
+
+html.theme-stars, body.theme-stars {
+  --bg: #050812;
+  --surface: #0b1020;
+  --card: #10172a;
+  --card-hover: #151f38;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(129, 140, 248, 0.42);
+  --text-muted: #aab7d4;
+  --accent: #818cf8;
+  --accent-glow: rgba(129, 140, 248, 0.22);
+  --theme-bg-image: url("assets/stars.png");
+}
+
+html.theme-lightning, body.theme-lightning {
+  --bg: #050814;
+  --surface: #0a1020;
+  --card: #0f172f;
+  --card-hover: #141f3c;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(96, 165, 250, 0.42);
+  --text-muted: #a7b6d6;
+  --accent: #60a5fa;
+  --accent-glow: rgba(96, 165, 250, 0.22);
+  --theme-bg-image: url("assets/lightning.png");
+}
+
+html.theme-teal-magenta, body.theme-teal-magenta {
+  --bg: #061017;
+  --surface: #0b1620;
+  --card: #11212d;
+  --card-hover: #162935;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(45, 212, 191, 0.42);
+  --text-muted: #a3c7d2;
+  --accent: #2dd4bf;
+  --accent-glow: rgba(45, 212, 191, 0.22);
+  --theme-bg-image: url("assets/teal-magenta.png");
+}
+
+html.theme-blue-pink, body.theme-blue-pink {
+  --bg: #071023;
+  --surface: #0c1528;
+  --card: #101b34;
+  --card-hover: #152240;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(244, 114, 182, 0.42);
+  --text-muted: #b6c1de;
+  --accent: #f472b6;
+  --accent-glow: rgba(244, 114, 182, 0.22);
+  --theme-bg-image: url("assets/blue-pink.png");
+}
+
+html.theme-blue-spots, body.theme-blue-spots {
+  --bg: #050b18;
+  --surface: #0a1224;
+  --card: #0f1830;
+  --card-hover: #132041;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(96, 165, 250, 0.42);
+  --text-muted: #a7bad5;
+  --accent: #60a5fa;
+  --accent-glow: rgba(96, 165, 250, 0.22);
+  --theme-bg-image: url("assets/blue-spots.png");
+}
+
+html.theme-white-spots, body.theme-white-spots {
+  --bg: #05050a;
+  --surface: #0c0c12;
+  --card: #13131a;
+  --card-hover: #1a1a22;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(229, 231, 235, 0.42);
+  --text-muted: #b8bcc7;
+  --accent: #e5e7eb;
+  --accent-glow: rgba(229, 231, 235, 0.18);
+  --theme-bg-image: url("assets/white-spots.png");
 }
 
 /* ── NAV BAR Component ────────────────────────────────── */

@@ -259,7 +259,6 @@
             e.preventDefault();
             try {
               await supabase.auth.signOut();
-              localStorage.removeItem('carson_theme');
               window.location.reload();
             } catch (err) {
               console.error('Logout error:', err);
@@ -298,16 +297,6 @@
           </div>`;
         return;
       }
-
-      targetFeed.innerHTML = "";
-      const ul = document.createElement("ul");
-      records.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = item.text;
-          ul.appendChild(li);
-        });
-        targetFeed.appendChild(ul);
-      };
 
       targetFeed.innerHTML = "";
       const ul = document.createElement("ul");
