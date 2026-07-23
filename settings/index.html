@@ -7,6 +7,24 @@
   <link rel="stylesheet" href="../style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght=700;800&family=Plus+Jakarta+Sans:wght=500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* ── DYNAMIC THEME CLASSES ── */
+    body {
+      transition: background 0.3s ease;
+    }
+    body.theme-red { background-color: #1c0505 !important; background-image: none; }
+    body.theme-orange { background-color: #1c0f05 !important; background-image: none; }
+    body.theme-yellow { background-color: #161402 !important; background-image: none; }
+    body.theme-green { background-color: #03140a !important; background-image: none; }
+    body.theme-blue { background-color: #030a1c !important; background-image: none; }
+    body.theme-purple { background-color: #0f031c !important; background-image: none; }
+
+    body.theme-stars { background-image: url('../assets/stars.png') !important; background-size: cover; background-attachment: fixed; background-position: center; }
+    body.theme-lightning { background-image: url('../assets/lightning.png') !important; background-size: cover; background-attachment: fixed; background-position: center; }
+    body.theme-teal-magenta { background-image: url('../assets/teal-magenta.png') !important; background-size: cover; background-attachment: fixed; background-position: center; }
+    body.theme-blue-pink { background-image: url('../assets/blue-pink.png') !important; background-size: cover; background-attachment: fixed; background-position: center; }
+    body.theme-blue-spots { background-image: url('../assets/blue-spots.png') !important; background-size: cover; background-attachment: fixed; background-position: center; }
+    body.theme-white-spots { background-image: url('../assets/white-spots.png') !important; background-size: cover; background-attachment: fixed; background-position: center; }
+
     .settings-hero { text-align: center; padding: 4rem 2rem 2rem; }
     .settings-hero h1 { font-family: var(--font-display); font-size: 3rem; font-weight: 800; }
     .settings-hero p { color: var(--text-muted); margin-top: 0.5rem; }
@@ -291,7 +309,6 @@
 
         await loadAndPopulateAnnouncements();
 
-        // Plus (+) Button Handler: Adds a new empty text box at the bottom
         document.getElementById("btn-add-box").onclick = () => {
           const stack = document.getElementById("announcements-stack");
           const newInput = document.createElement("input");
@@ -302,7 +319,6 @@
           newInput.focus();
         };
 
-        // Minus (-) Button Handler: Removes the bottom-most text box
         document.getElementById("btn-remove-box").onclick = () => {
           const stack = document.getElementById("announcements-stack");
           const inputs = stack.querySelectorAll(".announcement-input-field");
@@ -311,7 +327,6 @@
           }
         };
 
-        // Save Button Handler: Replaces everything in the database with current text box contents
         document.getElementById("btn-save-announcements").onclick = async () => {
           const msgEl = document.getElementById("announcement-msg");
           const stack = document.getElementById("announcements-stack");
@@ -325,11 +340,9 @@
             msgEl.textContent = "Saving changes...";
             msgEl.className = "status-msg";
 
-            // Delete all current records to replace
             const { error: deleteError } = await supabase.from("announcements").delete().neq("id", "00000000-0000-0000-0000-000000000000");
             if (deleteError) throw deleteError;
 
-            // Re-insert current items if any exist
             if (updatedTexts.length > 0) {
               const rowsToInsert = updatedTexts.map(text => ({ text }));
               const { error: insertError } = await supabase.from("announcements").insert(rowsToInsert);
@@ -371,7 +384,7 @@
       const { data: records, error } = await supabase
         .from("announcements")
         .select("*")
-        .order("created_at", { ascending: true }); // Oldest first so ordering is natural
+        .order("created_at", { ascending: true });
 
       stack.innerHTML = "";
 
@@ -381,7 +394,6 @@
       }
 
       if (!records || records.length === 0) {
-        // Create 1 initial empty box if database is empty
         const defaultInput = document.createElement("input");
         defaultInput.type = "text";
         defaultInput.className = "announcement-input-field";
@@ -390,7 +402,6 @@
         return;
       }
 
-      // Create an editable text input pre-filled with current database value
       records.forEach(item => {
         const input = document.createElement("input");
         input.type = "text";
